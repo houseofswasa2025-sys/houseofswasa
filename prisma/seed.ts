@@ -5,8 +5,15 @@ import bcrypt from "bcryptjs";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
+// Placeholder photos are generated locally (public/images/placeholders) instead of
+// fetched from picsum.photos — picsum can't reliably serve ~20 distinct images under
+// the concurrent load of an admin page loading every product's thumbnail at once.
 function img(seed: string) {
-  return `https://picsum.photos/seed/${seed}/800/1067`;
+  return seed;
+}
+
+function placeholderFor(fabric: string) {
+  return `/images/placeholders/${fabric.toLowerCase()}.jpg`;
 }
 
 const products = [
@@ -394,10 +401,11 @@ async function main() {
   console.log("Seeding products...");
   for (const p of products) {
     const slug = slugify(p.name);
+    const images = [placeholderFor(p.fabric)];
     await prisma.product.upsert({
       where: { slug },
-      update: {},
-      create: { ...p, slug },
+      update: { images },
+      create: { ...p, slug, images },
     });
   }
 
