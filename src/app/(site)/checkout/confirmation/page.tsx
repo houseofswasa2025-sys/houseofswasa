@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { whatsappLink, CONTACT } from "@/lib/constants";
+import { SuccessCheck } from "@/components/success-check";
 
 export default async function OrderConfirmationPage({
   searchParams,
@@ -10,9 +11,7 @@ export default async function OrderConfirmationPage({
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-3xl text-green-600">
-        ✓
-      </div>
+      <SuccessCheck />
       <h1 className="font-serif text-2xl font-semibold text-maroon">Order Placed!</h1>
       {order && (
         <p className="mt-2 text-sm text-foreground/70">

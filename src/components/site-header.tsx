@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { useCartStore } from "@/lib/cart-store";
 import { CATEGORIES, SITE_NAME } from "@/lib/constants";
 import { toSlug } from "@/lib/slug";
@@ -62,19 +63,27 @@ export function SiteHeader() {
             <button className="text-sm font-medium text-foreground/80 hover:text-maroon">
               Categories ▾
             </button>
-            {categoriesOpen && (
-              <div className="absolute right-0 top-full grid w-64 grid-cols-1 gap-1 rounded-lg border border-gold-light bg-white p-3 shadow-lg">
-                {CATEGORIES.map((cat) => (
-                  <Link
-                    key={cat}
-                    href={`/categories/${toSlug(cat)}`}
-                    className="rounded px-2 py-1.5 text-sm text-foreground/80 hover:bg-ivory hover:text-maroon"
-                  >
-                    {cat}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <AnimatePresence>
+              {categoriesOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                  transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute right-0 top-full grid w-64 origin-top-right grid-cols-1 gap-1 rounded-lg border border-gold-light bg-white p-3 shadow-lg"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <Link
+                      key={cat}
+                      href={`/categories/${toSlug(cat)}`}
+                      className="rounded px-2 py-1.5 text-sm text-foreground/80 transition-colors hover:bg-ivory hover:text-maroon"
+                    >
+                      {cat}
+                    </Link>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </nav>
 
@@ -85,19 +94,22 @@ export function SiteHeader() {
           >
             Account
           </Link>
-          <Link href="/cart" className="relative">
+          <Link href="/cart" className="relative transition-transform active:scale-90">
             <svg className="h-6 w-6 text-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.836l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 1.94-4.693 2.436-7.152.083-.412-.223-.798-.643-.798H5.106M7.5 14.25 5.106 5.121M6 18.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm13.5 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
             </svg>
             {totalItems > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-maroon text-[11px] font-semibold text-white">
+              <span
+                key={totalItems}
+                className="animate-pop absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-maroon text-[11px] font-semibold text-white"
+              >
                 {totalItems}
               </span>
             )}
           </Link>
           <button
             aria-label="Toggle menu"
-            className="lg:hidden"
+            className="lg:hidden transition-transform active:scale-90"
             onClick={() => setMenuOpen((v) => !v)}
           >
             <svg className="h-6 w-6 text-maroon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -111,49 +123,57 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {menuOpen && (
-        <nav className="flex flex-col gap-1 border-t border-gold-light/60 bg-cream px-4 py-3 lg:hidden">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className="rounded px-2 py-2 text-sm font-medium text-foreground/80 hover:bg-ivory hover:text-maroon"
-            >
-              {link.label}
-            </Link>
-          ))}
-          <div className="mt-1 border-t border-gold-light/60 pt-2">
-            <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-              Categories
-            </p>
-            {CATEGORIES.map((cat) => (
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.nav
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col gap-1 overflow-hidden border-t border-gold-light/60 bg-cream px-4 py-3 lg:hidden"
+          >
+            {NAV_LINKS.map((link) => (
               <Link
-                key={cat}
-                href={`/categories/${toSlug(cat)}`}
+                key={link.href}
+                href={link.href}
                 onClick={() => setMenuOpen(false)}
-                className="block rounded px-2 py-1.5 text-sm text-foreground/80 hover:bg-ivory hover:text-maroon"
+                className="rounded px-2 py-2 text-sm font-medium text-foreground/80 hover:bg-ivory hover:text-maroon"
               >
-                {cat}
+                {link.label}
               </Link>
             ))}
-          </div>
-          <Link
-            href="/account"
-            onClick={() => setMenuOpen(false)}
-            className="mt-1 rounded border-t border-gold-light/60 px-2 pt-3 text-sm font-medium text-foreground/80 hover:text-maroon"
-          >
-            My Account
-          </Link>
-          <Link
-            href="/faqs"
-            onClick={() => setMenuOpen(false)}
-            className="rounded px-2 py-1.5 text-sm text-foreground/80 hover:text-maroon"
-          >
-            FAQs
-          </Link>
-        </nav>
-      )}
+            <div className="mt-1 border-t border-gold-light/60 pt-2">
+              <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
+                Categories
+              </p>
+              {CATEGORIES.map((cat) => (
+                <Link
+                  key={cat}
+                  href={`/categories/${toSlug(cat)}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded px-2 py-1.5 text-sm text-foreground/80 hover:bg-ivory hover:text-maroon"
+                >
+                  {cat}
+                </Link>
+              ))}
+            </div>
+            <Link
+              href="/account"
+              onClick={() => setMenuOpen(false)}
+              className="mt-1 rounded border-t border-gold-light/60 px-2 pt-3 text-sm font-medium text-foreground/80 hover:text-maroon"
+            >
+              My Account
+            </Link>
+            <Link
+              href="/faqs"
+              onClick={() => setMenuOpen(false)}
+              className="rounded px-2 py-1.5 text-sm text-foreground/80 hover:text-maroon"
+            >
+              FAQs
+            </Link>
+          </motion.nav>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { CATEGORIES, FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
 
 const PRICE_RANGES = [
@@ -92,7 +93,7 @@ export function ProductFilters() {
             <button
               key={c}
               onClick={() => toggle("category", c)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${
+              className={`rounded-full border px-2.5 py-1 text-xs transition-transform active:scale-90 ${
                 current.category === c ? "border-maroon bg-maroon text-white" : "border-gold-light text-foreground/70"
               }`}
             >
@@ -108,7 +109,7 @@ export function ProductFilters() {
             <button
               key={f}
               onClick={() => toggle("fabric", f)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${
+              className={`rounded-full border px-2.5 py-1 text-xs transition-transform active:scale-90 ${
                 current.fabric === f ? "border-maroon bg-maroon text-white" : "border-gold-light text-foreground/70"
               }`}
             >
@@ -124,7 +125,7 @@ export function ProductFilters() {
             <button
               key={o}
               onClick={() => toggle("occasion", o)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${
+              className={`rounded-full border px-2.5 py-1 text-xs transition-transform active:scale-90 ${
                 current.occasion === o ? "border-maroon bg-maroon text-white" : "border-gold-light text-foreground/70"
               }`}
             >
@@ -140,7 +141,7 @@ export function ProductFilters() {
             <button
               key={c}
               onClick={() => toggle("color", c)}
-              className={`rounded-full border px-2.5 py-1 text-xs ${
+              className={`rounded-full border px-2.5 py-1 text-xs transition-transform active:scale-90 ${
                 current.color === c ? "border-maroon bg-maroon text-white" : "border-gold-light text-foreground/70"
               }`}
             >
@@ -168,7 +169,7 @@ export function ProductFilters() {
       <div className="mb-4 lg:hidden">
         <button
           onClick={() => setOpen(true)}
-          className="rounded-full border border-maroon px-4 py-2 text-sm font-medium text-maroon"
+          className="rounded-full border border-maroon px-4 py-2 text-sm font-medium text-maroon transition-transform active:scale-95"
         >
           Filters {activeCount > 0 && `(${activeCount})`}
         </button>
@@ -176,17 +177,32 @@ export function ProductFilters() {
 
       <aside className="hidden w-64 shrink-0 lg:block">{body}</aside>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="relative ml-auto h-full w-80 max-w-[85vw] overflow-y-auto bg-white p-4">
-            <button onClick={() => setOpen(false)} className="mb-2 text-sm text-foreground/60">
-              ✕ Close
-            </button>
-            {body}
+      <AnimatePresence>
+        {open && (
+          <div className="fixed inset-0 z-50 flex lg:hidden">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="relative ml-auto h-full w-80 max-w-[85vw] overflow-y-auto bg-white p-4"
+            >
+              <button onClick={() => setOpen(false)} className="mb-2 text-sm text-foreground/60">
+                ✕ Close
+              </button>
+              {body}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </>
   );
 }

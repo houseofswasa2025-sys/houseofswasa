@@ -376,15 +376,16 @@ async function main() {
 
   console.log("Seeding admin user...");
   const adminPhone = "9652282268";
-  const adminPassword = "swasa@admin123";
+  const adminEmail = "houseofswasa2025@gmail.com";
+  const adminPassword = "Swasa@0406";
   const passwordHash = await bcrypt.hash(adminPassword, 10);
   await prisma.user.upsert({
     where: { phone: adminPhone },
-    update: {},
+    update: { email: adminEmail, passwordHash, role: "ADMIN" },
     create: {
       name: "House of Swasa Admin",
       phone: adminPhone,
-      email: "swathi.pisarla98@gmail.com",
+      email: adminEmail,
       passwordHash,
       role: "ADMIN",
     },
@@ -409,7 +410,7 @@ async function main() {
   }
 
   console.log("Done.");
-  console.log(`Admin login -> phone: ${adminPhone}, password: ${adminPassword}`);
+  console.log(`Admin login -> email: ${adminEmail} (or phone: ${adminPhone}), password: ${adminPassword}`);
 }
 
 main()

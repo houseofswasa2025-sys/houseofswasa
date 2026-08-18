@@ -30,7 +30,7 @@ export async function registerAction(
   });
 
   try {
-    await signIn("credentials", { phone, password, redirectTo });
+    await signIn("credentials", { identifier: phone, password, redirectTo });
   } catch (error) {
     if (error instanceof AuthError) {
       return { error: "Account created, but sign-in failed. Please log in." };

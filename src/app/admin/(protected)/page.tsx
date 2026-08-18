@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/constants";
+import { AnimatedNumber } from "@/components/animated-number";
+import { Reveal, RevealGroup, RevealItem } from "@/components/reveal";
 
 export default async function AdminDashboardPage() {
   const [totalOrders, pendingOrders, totalProducts, lowStock, recentOrders] = await Promise.all([
@@ -22,14 +24,18 @@ export default async function AdminDashboardPage() {
     <div>
       <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Dashboard</h1>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <RevealGroup className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4" stagger={0.07}>
         {stats.map((s) => (
-          <div key={s.label} className="rounded-xl border border-gold-light/60 bg-white p-4">
-            <p className="text-xs uppercase tracking-wide text-foreground/50">{s.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-maroon">{s.value}</p>
-          </div>
+          <RevealItem key={s.label}>
+            <div className="rounded-xl border border-gold-light/60 bg-white p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
+              <p className="text-xs uppercase tracking-wide text-foreground/50">{s.label}</p>
+              <p className="mt-1 text-2xl font-semibold text-maroon">
+                <AnimatedNumber value={s.value} />
+              </p>
+            </div>
+          </RevealItem>
         ))}
-      </div>
+      </RevealGroup>
 
       <div className="rounded-xl border border-gold-light/60 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">

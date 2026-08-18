@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCartStore } from "@/lib/cart-store";
 
 type Props = {
@@ -39,7 +40,7 @@ export function AddToCartButton({ productId, slug, name, price, image, colors, s
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                className={`rounded-full border px-3 py-1 text-xs font-medium transition-all active:scale-90 ${
                   color === c
                     ? "border-maroon bg-maroon text-white"
                     : "border-gold-light text-foreground/70 hover:border-maroon"
@@ -51,16 +52,30 @@ export function AddToCartButton({ productId, slug, name, price, image, colors, s
           </div>
         </div>
       )}
-      <button
+      <motion.button
         onClick={() => {
           addItem({ productId, slug, name, price, image, color: color || undefined, maxStock: stock });
           setAdded(true);
           setTimeout(() => setAdded(false), 1500);
         }}
-        className="w-full rounded-full bg-maroon px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-maroon-dark"
+        whileTap={{ scale: 0.95 }}
+        animate={added ? { backgroundColor: "#16a34a" } : { backgroundColor: "#7a1f2f" }}
+        transition={{ duration: 0.25 }}
+        className="relative w-full overflow-hidden rounded-full px-5 py-2.5 text-sm font-semibold text-white"
       >
-        {added ? "Added to Cart ✓" : "Add to Cart"}
-      </button>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={added ? "added" : "add"}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.18 }}
+            className="block"
+          >
+            {added ? "Added to Cart ✓" : "Add to Cart"}
+          </motion.span>
+        </AnimatePresence>
+      </motion.button>
     </div>
   );
 }

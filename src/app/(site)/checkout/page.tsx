@@ -185,7 +185,7 @@ export default function CheckoutPage() {
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-full bg-maroon py-3 text-sm font-semibold text-white hover:bg-maroon-dark disabled:opacity-60"
+            className="w-full rounded-full bg-maroon py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-maroon-dark hover:shadow-lg active:scale-95 disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {pending ? "Placing Order..." : "Place Order (Cash on Delivery)"}
           </button>

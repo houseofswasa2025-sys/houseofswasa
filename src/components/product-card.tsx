@@ -30,7 +30,7 @@ export function ProductCard({
   const productUrl = `/products/${slug}`;
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gold-light/50 bg-white transition-shadow hover:shadow-lg">
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gold-light/50 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
       <Link href={productUrl} className="relative block aspect-[3/4] overflow-hidden bg-ivory">
         {image ? (
           <Image
@@ -82,7 +82,7 @@ export function ProductCard({
           href={whatsappLink(`Hi! I'm interested in "${name}" (${formatPrice(displayPrice)}). Is it available?`)}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] hover:bg-[#25D366]/10"
+          className="mt-2 rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] transition-transform duration-150 hover:bg-[#25D366]/10 active:scale-95"
         >
           Order on WhatsApp
         </a>

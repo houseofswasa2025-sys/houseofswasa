@@ -1,4 +1,5 @@
 import { ProductCard } from "@/components/product-card";
+import { RevealGroup, RevealItem } from "@/components/reveal";
 import type { Product } from "@/generated/prisma/client";
 
 export function ProductGrid({ products }: { products: Product[] }) {
@@ -12,21 +13,22 @@ export function ProductGrid({ products }: { products: Product[] }) {
   }
 
   return (
-    <div className="grid flex-1 grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+    <RevealGroup className="grid flex-1 grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4" stagger={0.06}>
       {products.map((p) => (
-        <ProductCard
-          key={p.id}
-          slug={p.slug}
-          name={p.name}
-          price={p.price}
-          salePrice={p.salePrice}
-          image={p.images[0] ?? ""}
-          fabric={p.fabric}
-          stock={p.stock}
-          isNewArrival={p.isNewArrival}
-          isOnSale={p.isOnSale}
-        />
+        <RevealItem key={p.id}>
+          <ProductCard
+            slug={p.slug}
+            name={p.name}
+            price={p.price}
+            salePrice={p.salePrice}
+            image={p.images[0] ?? ""}
+            fabric={p.fabric}
+            stock={p.stock}
+            isNewArrival={p.isNewArrival}
+            isOnSale={p.isOnSale}
+          />
+        </RevealItem>
       ))}
-    </div>
+    </RevealGroup>
   );
 }

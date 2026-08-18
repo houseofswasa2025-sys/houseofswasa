@@ -23,13 +23,14 @@ export default function AdminLoginPage() {
 
         <form action={formAction} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground/70">Phone</label>
+            <label className="mb-1 block text-sm font-medium text-foreground/70">Email</label>
             <input
-              name="phone"
-              type="tel"
+              name="identifier"
+              type="email"
               required
+              autoFocus
               className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-              placeholder="9652282268"
+              placeholder="houseofswasa2025@gmail.com"
             />
           </div>
           <div>
