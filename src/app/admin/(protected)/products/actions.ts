@@ -4,9 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put, del } from "@vercel/blob";
 import sharp from "sharp";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
 import { requireAdmin } from "@/lib/require-admin";
+
+export type ProductFormState = { error?: string } | undefined;
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
@@ -23,20 +26,24 @@ async function compressImage(file: File): Promise<Buffer> {
     .toBuffer();
 }
 
+class ImageUploadError extends Error {}
+
 async function uploadImages(formData: FormData): Promise<string[]> {
   const files = formData.getAll("newImages").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return [];
 
   for (const file of files) {
     if (!file.type.startsWith("image/")) {
-      throw new Error(`"${file.name}" isn't an image file.`);
+      throw new ImageUploadError(`"${file.name}" isn't an image file.`);
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      throw new Error(`"${file.name}" is larger than 8MB.`);
+      throw new ImageUploadError(`"${file.name}" is larger than 8MB — please compress it and try again.`);
     }
   }
 
-  const uploaded = await Promise.all(
-    files.map(async (file) => {
+  const uploaded: string[] = [];
+  try {
+    for (const file of files) {
       const compressed = await compressImage(file);
       const baseName = file.name.replace(/\.[^.]+$/, "");
       const blob = await put(`products/${Date.now()}-${baseName}.webp`, compressed, {
@@ -44,9 +51,16 @@ async function uploadImages(formData: FormData): Promise<string[]> {
         addRandomSuffix: true,
         contentType: "image/webp",
       });
-      return blob.url;
-    })
-  );
+      uploaded.push(blob.url);
+    }
+  } catch (error) {
+    // Best-effort cleanup of whatever did make it to Blob before the failure.
+    await Promise.all(uploaded.map((url) => del(url).catch(() => {})));
+    throw new ImageUploadError(
+      `Couldn't upload "${files[uploaded.length]?.name ?? "an image"}" — please check your connection and try again.`
+    );
+  }
+
   return uploaded;
 }
 
@@ -75,37 +89,81 @@ function buildProductData(formData: FormData) {
   };
 }
 
-export async function createProduct(formData: FormData) {
+function friendlySaveError(error: unknown): string {
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    return "That slug is already used by another product — please choose a different one.";
+  }
+  return "Couldn't save the product. Please try again.";
+}
+
+export async function createProduct(
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> {
   await requireAdmin();
 
-  const newImages = await uploadImages(formData);
+  let newImages: string[];
+  try {
+    newImages = await uploadImages(formData);
+  } catch (error) {
+    return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
+  }
+
   const keptExisting = parseList(formData, "existingImages");
   const data = buildProductData(formData);
 
-  await prisma.product.create({
-    data: { ...data, images: [...keptExisting, ...newImages] },
-  });
+  try {
+    await prisma.product.create({
+      data: { ...data, images: [...keptExisting, ...newImages] },
+    });
+  } catch (error) {
+    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
+    return { error: friendlySaveError(error) };
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/sarees");
   redirect("/admin/products");
 }
 
-export async function updateProduct(productId: string, formData: FormData) {
+export async function updateProduct(
+  productId: string,
+  _prevState: ProductFormState,
+  formData: FormData
+): Promise<ProductFormState> {
   await requireAdmin();
 
-  const newImages = await uploadImages(formData);
+  let newImages: string[];
+  try {
+    newImages = await uploadImages(formData);
+  } catch (error) {
+    return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
+  }
+
   const keptExisting = parseList(formData, "existingImages");
   const data = buildProductData(formData);
 
   const existingProduct = await prisma.product.findUnique({ where: { id: productId } });
-  const removedImages = (existingProduct?.images || []).filter((img) => !keptExisting.includes(img));
-  await Promise.all(removedImages.map((url) => del(url).catch(() => {})));
+  if (!existingProduct) {
+    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
+    return { error: "This product no longer exists." };
+  }
 
-  await prisma.product.update({
-    where: { id: productId },
-    data: { ...data, images: [...keptExisting, ...newImages] },
-  });
+  try {
+    await prisma.product.update({
+      where: { id: productId },
+      data: { ...data, images: [...keptExisting, ...newImages] },
+    });
+  } catch (error) {
+    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
+    return { error: friendlySaveError(error) };
+  }
+
+  // Only remove the now-unused old images from Blob after the DB update has
+  // actually succeeded, so a failed save never leaves the product pointing
+  // at deleted files.
+  const removedImages = existingProduct.images.filter((img) => !keptExisting.includes(img));
+  await Promise.all(removedImages.map((url) => del(url).catch(() => {})));
 
   revalidatePath("/admin/products");
   revalidatePath(`/products/${data.slug}`);
@@ -118,8 +176,8 @@ export async function deleteProduct(productId: string) {
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (product) {
-    await Promise.all(product.images.map((url) => del(url).catch(() => {})));
     await prisma.product.delete({ where: { id: productId } });
+    await Promise.all(product.images.map((url) => del(url).catch(() => {})));
   }
   revalidatePath("/admin/products");
   revalidatePath("/sarees");

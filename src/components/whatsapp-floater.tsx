@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { whatsappLink } from "@/lib/constants";
+import { logWhatsAppClick } from "@/lib/track-whatsapp-click";
 
 export function WhatsAppFloater({ number }: { number: string }) {
   const href = whatsappLink(
@@ -15,6 +16,7 @@ export function WhatsAppFloater({ number }: { number: string }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
+      onClick={() => logWhatsAppClick({ page: "floater" }).catch(() => {})}
       initial={{ opacity: 0, scale: 0, rotate: -30 }}
       animate={{ opacity: 1, scale: 1, rotate: 0 }}
       transition={{ duration: 0.5, delay: 0.6, ease: [0.34, 1.56, 0.64, 1] }}

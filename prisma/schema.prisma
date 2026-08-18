@@ -31,6 +31,11 @@ enum PaymentMethod {
   CARD
 }
 
+enum OrderSource {
+  WEBSITE
+  WHATSAPP
+}
+
 model User {
   id           String    @id @default(cuid())
   name         String
@@ -102,6 +107,7 @@ model Order {
   total         Int
   paymentMethod PaymentMethod @default(COD)
   status        OrderStatus   @default(PENDING)
+  source        OrderSource   @default(WEBSITE)
   notes         String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -128,6 +134,16 @@ model Review {
   text      String
   approved  Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model WhatsAppClick {
+  id          String   @id @default(cuid())
+  productId   String?
+  productName String?
+  page        String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model SiteSettings {

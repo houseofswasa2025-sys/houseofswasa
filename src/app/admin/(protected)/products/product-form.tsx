@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { AnimatePresence, motion } from "motion/react";
 import { CATEGORIES, FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
 import type { Product } from "@/generated/prisma/client";
+import type { ProductFormState } from "./actions";
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 type Props = {
   product?: Product;
-  action: (formData: FormData) => Promise<void>;
+  action: (prevState: ProductFormState, formData: FormData) => Promise<ProductFormState>;
 };
 
 function CheckboxGroup({
@@ -40,19 +44,121 @@ function CheckboxGroup({
   );
 }
 
-export function ProductForm({ product, action }: Props) {
-  const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
-  const [pending, setPending] = useState(false);
+type StagedFile = { file: File; id: string; previewUrl: string };
+
+function StagedImagePicker({ staged, setStaged }: { staged: StagedFile[]; setStaged: (fn: (s: StagedFile[]) => StagedFile[]) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState("");
+
+  function syncInputFiles(files: StagedFile[]) {
+    const dt = new DataTransfer();
+    files.forEach((s) => dt.items.add(s.file));
+    if (inputRef.current) inputRef.current.files = dt.files;
+  }
+
+  function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? []);
+    setFileError("");
+
+    const accepted: StagedFile[] = [];
+    for (const file of picked) {
+      if (!file.type.startsWith("image/")) {
+        setFileError(`"${file.name}" isn't an image file — skipped.`);
+        continue;
+      }
+      if (file.size > MAX_IMAGE_BYTES) {
+        setFileError(`"${file.name}" is larger than 8MB — skipped.`);
+        continue;
+      }
+      accepted.push({ file, id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`, previewUrl: URL.createObjectURL(file) });
+    }
+
+    setStaged((prev) => {
+      const next = [...prev, ...accepted];
+      syncInputFiles(next);
+      return next;
+    });
+  }
+
+  function removeStaged(id: string) {
+    setStaged((prev) => {
+      const removed = prev.find((s) => s.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      const next = prev.filter((s) => s.id !== id);
+      syncInputFiles(next);
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    return () => {
+      staged.forEach((s) => URL.revokeObjectURL(s.previewUrl));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    <form
-      action={async (formData) => {
-        setPending(true);
-        await action(formData);
-        setPending(false);
-      }}
-      className="max-w-3xl space-y-6"
-    >
+    <div>
+      {staged.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-3">
+          {staged.map((s) => (
+            <motion.div
+              key={s.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative h-24 w-20 overflow-hidden rounded-lg border-2 border-gold"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.previewUrl} alt="" className="h-full w-full object-cover" />
+              <span className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 text-[9px] font-medium text-white">
+                New
+              </span>
+              <button
+                type="button"
+                onClick={() => removeStaged(s.id)}
+                className="absolute right-0.5 top-0.5 rounded-full bg-black/60 px-1.5 text-xs text-white transition-transform active:scale-90"
+              >
+                ✕
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        name="newImages"
+        multiple
+        accept="image/*"
+        onChange={handlePick}
+        className="block w-full text-sm text-foreground/70 file:mr-3 file:rounded-full file:border-0 file:bg-maroon file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
+      />
+      <p className="mt-1 text-xs text-foreground/50">JPG, PNG or WebP, up to 8MB each. Images are compressed automatically.</p>
+
+      <AnimatePresence>
+        {fileError && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mt-1.5 text-xs text-red-600"
+          >
+            {fileError}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function ProductForm({ product, action }: Props) {
+  const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
+  const [staged, setStaged] = useState<StagedFile[]>([]);
+  const [state, formAction, pending] = useActionState(action, undefined);
+
+  return (
+    <form action={formAction} className="max-w-3xl space-y-6">
       {existingImages.map((url) => (
         <input key={url} type="hidden" name="existingImages" value={url} />
       ))}
@@ -195,7 +301,7 @@ export function ProductForm({ product, action }: Props) {
                 <button
                   type="button"
                   onClick={() => setExistingImages((imgs) => imgs.filter((i) => i !== url))}
-                  className="absolute right-0.5 top-0.5 rounded-full bg-black/60 px-1.5 text-xs text-white"
+                  className="absolute right-0.5 top-0.5 rounded-full bg-black/60 px-1.5 text-xs text-white transition-transform active:scale-90"
                 >
                   ✕
                 </button>
@@ -203,22 +309,36 @@ export function ProductForm({ product, action }: Props) {
             ))}
           </div>
         )}
-        <input
-          type="file"
-          name="newImages"
-          multiple
-          accept="image/*"
-          className="block w-full text-sm text-foreground/70 file:mr-3 file:rounded-full file:border-0 file:bg-maroon file:px-4 file:py-2 file:text-xs file:font-semibold file:text-white"
-        />
+        <StagedImagePicker staged={staged} setStaged={setStaged} />
+        {existingImages.length === 0 && staged.length === 0 && (
+          <p className="mt-2 text-xs text-amber-600">
+            No images yet — the product will show a placeholder on the site until you add one.
+          </p>
+        )}
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-white hover:bg-maroon-dark disabled:opacity-60"
-      >
-        {pending ? "Saving..." : product ? "Save Changes" : "Create Product"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-maroon-dark hover:shadow-md active:scale-95 disabled:opacity-60"
+        >
+          {pending ? "Saving..." : product ? "Save Changes" : "Create Product"}
+        </button>
+
+        <AnimatePresence>
+          {state?.error && (
+            <motion.p
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0 }}
+              className="text-sm font-medium text-red-600"
+            >
+              {state.error}
+            </motion.p>
+          )}
+        </AnimatePresence>
+      </div>
     </form>
   );
 }
