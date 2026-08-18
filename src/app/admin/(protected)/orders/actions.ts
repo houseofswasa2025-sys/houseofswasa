@@ -2,12 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus
 ): Promise<{ success?: true; error?: string }> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") return { error: "Unauthorized." };
+
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { items: true } });
   if (!order) return { error: "Order not found." };
   if (order.status === status) return { success: true };

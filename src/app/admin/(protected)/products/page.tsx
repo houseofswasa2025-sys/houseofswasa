@@ -10,7 +10,7 @@ export default async function AdminProductsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-semibold text-maroon">Products</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-maroon">Products</h1>
         <Link
           href="/admin/products/new"
           className="rounded-full bg-maroon px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-maroon-dark hover:shadow-md active:scale-95"

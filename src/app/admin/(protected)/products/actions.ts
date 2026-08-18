@@ -6,6 +6,9 @@ import { put, del } from "@vercel/blob";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
+import { requireAdmin } from "@/lib/require-admin";
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
 function parseList(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -22,6 +25,16 @@ async function compressImage(file: File): Promise<Buffer> {
 
 async function uploadImages(formData: FormData): Promise<string[]> {
   const files = formData.getAll("newImages").filter((f): f is File => f instanceof File && f.size > 0);
+
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) {
+      throw new Error(`"${file.name}" isn't an image file.`);
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error(`"${file.name}" is larger than 8MB.`);
+    }
+  }
+
   const uploaded = await Promise.all(
     files.map(async (file) => {
       const compressed = await compressImage(file);
@@ -63,6 +76,8 @@ function buildProductData(formData: FormData) {
 }
 
 export async function createProduct(formData: FormData) {
+  await requireAdmin();
+
   const newImages = await uploadImages(formData);
   const keptExisting = parseList(formData, "existingImages");
   const data = buildProductData(formData);
@@ -77,6 +92,8 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
+  await requireAdmin();
+
   const newImages = await uploadImages(formData);
   const keptExisting = parseList(formData, "existingImages");
   const data = buildProductData(formData);
@@ -97,6 +114,8 @@ export async function updateProduct(productId: string, formData: FormData) {
 }
 
 export async function deleteProduct(productId: string) {
+  await requireAdmin();
+
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (product) {
     await Promise.all(product.images.map((url) => del(url).catch(() => {})));
@@ -107,6 +126,8 @@ export async function deleteProduct(productId: string) {
 }
 
 export async function toggleActive(productId: string, isActive: boolean) {
+  await requireAdmin();
+
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
   revalidatePath("/admin/products");
   revalidatePath("/sarees");

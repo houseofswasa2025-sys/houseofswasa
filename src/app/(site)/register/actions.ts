@@ -15,8 +15,8 @@ export async function registerAction(
   const password = String(formData.get("password") || "");
   const redirectTo = String(formData.get("redirectTo") || "/account");
 
-  if (!name || !phone || password.length < 6) {
-    return { error: "Please fill all required fields. Password must be at least 6 characters." };
+  if (!name || !phone || password.length < 8) {
+    return { error: "Please fill all required fields. Password must be at least 8 characters." };
   }
 
   const existing = await prisma.user.findUnique({ where: { phone } });

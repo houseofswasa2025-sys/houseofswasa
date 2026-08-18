@@ -6,7 +6,7 @@ export default async function AdminReviewsPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Reviews</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-maroon">Reviews</h1>
       <div className="space-y-3">
         {reviews.map((r) => (
           <div key={r.id} className="rounded-xl border border-gold-light/60 bg-white p-4">

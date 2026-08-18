@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 
 export async function updateSiteSettings(
   _prevState: { success: boolean } | undefined,
   formData: FormData
 ) {
+  await requireAdmin();
+
   await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: {

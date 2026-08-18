@@ -11,7 +11,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-1 font-serif text-2xl font-semibold text-maroon">{order.orderNumber}</h1>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-maroon">{order.orderNumber}</h1>
       <p className="mb-6 text-sm text-foreground/60">
         Placed on {order.createdAt.toLocaleString("en-IN")}
       </p>

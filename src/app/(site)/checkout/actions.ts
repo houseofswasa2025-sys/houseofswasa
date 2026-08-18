@@ -29,6 +29,12 @@ export async function placeOrder(input: CheckoutInput) {
     return { error: "Your cart is empty." };
   }
 
+  for (const item of input.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+      return { error: "Invalid item quantity in your cart. Please refresh and try again." };
+    }
+  }
+
   const session = await auth();
 
   const productIds = input.items.map((i) => i.productId);
@@ -36,12 +42,26 @@ export async function placeOrder(input: CheckoutInput) {
 
   for (const item of input.items) {
     const product = products.find((p) => p.id === item.productId);
-    if (!product || product.stock < item.quantity) {
+    if (!product || !product.isActive || product.stock < item.quantity) {
       return { error: `Sorry, "${item.name}" doesn't have enough stock. Please update your cart.` };
     }
   }
 
-  const subtotal = input.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  // Prices are always recomputed from the database — client-supplied prices are never trusted.
+  const orderItems = input.items.map((item) => {
+    const product = products.find((p) => p.id === item.productId)!;
+    const price = product.salePrice ?? product.price;
+    return {
+      productId: item.productId,
+      productName: product.name,
+      image: product.images[0],
+      price,
+      quantity: item.quantity,
+      color: item.color,
+    };
+  });
+
+  const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const orderNumber = `HOS${Date.now().toString().slice(-8)}`;
 
   const order = await prisma.$transaction(async (tx) => {
@@ -60,20 +80,11 @@ export async function placeOrder(input: CheckoutInput) {
         notes: input.notes || undefined,
         subtotal,
         total: subtotal,
-        items: {
-          create: input.items.map((i) => ({
-            productId: i.productId,
-            productName: i.name,
-            image: products.find((p) => p.id === i.productId)?.images[0],
-            price: i.price,
-            quantity: i.quantity,
-            color: i.color,
-          })),
-        },
+        items: { create: orderItems },
       },
     });
 
-    for (const item of input.items) {
+    for (const item of orderItems) {
       await tx.product.update({
         where: { id: item.productId },
         data: { stock: { decrement: item.quantity } },

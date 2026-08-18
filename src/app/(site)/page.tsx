@@ -3,11 +3,11 @@ import Image from "next/image";
 import { getProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
-import { ProductGrid } from "@/components/product-grid";
 import { CATEGORIES, SITE_TAGLINE } from "@/lib/constants";
 import { toSlug } from "@/lib/slug";
 import { Reveal, RevealGroup, RevealItem } from "@/components/reveal";
 import { HeroLogo, HeroStagger, HeroItem } from "@/components/hero-animate";
+import { ProductTabs } from "@/components/product-tabs";
 
 const WHY_CHOOSE_US = [
   "Premium Quality Fabrics",
@@ -28,7 +28,7 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-gradient-to-b from-ivory to-cream px-4 py-16 text-center sm:py-24">
+      <section className="relative overflow-hidden bg-gradient-to-b from-ivory to-cream px-4 py-10 text-center sm:py-14">
         <HeroLogo>
           <Image
             src="/images/logo.jpeg"
@@ -70,7 +70,7 @@ export default async function HomePage() {
         </HeroStagger>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-10">
+      <section className="mx-auto max-w-7xl px-4 pb-10 pt-2">
         <Reveal>
           <h2 className="mb-4 text-center font-serif text-2xl font-semibold text-maroon">
             Shop by Category
@@ -90,27 +90,20 @@ export default async function HomePage() {
         </RevealGroup>
       </section>
 
-      {newArrivals.length > 0 && (
+      {(newArrivals.length > 0 || bestSellers.length > 0) && (
         <section className="mx-auto max-w-7xl px-4 py-10">
-          <Reveal className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-semibold text-maroon">New Arrivals</h2>
-            <Link href="/new-arrivals" className="text-sm font-medium text-maroon hover:underline">
-              View all
-            </Link>
+          <Reveal>
+            <ProductTabs
+              tabs={[
+                ...(newArrivals.length > 0
+                  ? [{ key: "new", label: "New Arrivals", href: "/new-arrivals", products: newArrivals }]
+                  : []),
+                ...(bestSellers.length > 0
+                  ? [{ key: "best", label: "Best Sellers", href: "/best-sellers", products: bestSellers }]
+                  : []),
+              ]}
+            />
           </Reveal>
-          <ProductGrid products={newArrivals.slice(0, 8)} />
-        </section>
-      )}
-
-      {bestSellers.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-10">
-          <Reveal className="mb-4 flex items-center justify-between">
-            <h2 className="font-serif text-2xl font-semibold text-maroon">Best Sellers</h2>
-            <Link href="/best-sellers" className="text-sm font-medium text-maroon hover:underline">
-              View all
-            </Link>
-          </Reveal>
-          <ProductGrid products={bestSellers.slice(0, 8)} />
         </section>
       )}
 

@@ -27,7 +27,7 @@ export default async function AdminOrdersPage({
 
   return (
     <div>
-      <h1 className="mb-4 font-serif text-2xl font-semibold text-maroon">Orders</h1>
+      <h1 className="mb-4 text-2xl font-bold tracking-tight text-maroon">Orders</h1>
 
       <div className="mb-4 flex flex-wrap gap-2">
         <Link

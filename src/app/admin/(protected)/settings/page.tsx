@@ -6,7 +6,7 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Social Media & Contact</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-maroon">Social Media & Contact</h1>
       <SettingsForm settings={settings} />
     </div>
   );

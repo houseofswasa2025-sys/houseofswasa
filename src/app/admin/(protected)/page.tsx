@@ -22,7 +22,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Dashboard</h1>
+      <h1 className="mb-6 text-2xl font-bold tracking-tight text-maroon">Dashboard</h1>
 
       <RevealGroup className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4" stagger={0.07}>
         {stats.map((s) => (
