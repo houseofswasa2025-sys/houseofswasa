@@ -40,7 +40,7 @@ export default async function HomePage() {
         </HeroLogo>
         <HeroStagger>
           <HeroItem>
-            <h1 className="mt-6 font-serif text-3xl font-semibold text-maroon sm:text-5xl">
+            <h1 className="mt-6 font-brand text-3xl font-medium text-maroon sm:text-5xl">
               House of Swasa
             </h1>
           </HeroItem>

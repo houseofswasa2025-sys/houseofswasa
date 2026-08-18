@@ -27,7 +27,7 @@ export function SiteFooter({ settings }: { settings: Settings }) {
     <footer className="mt-16 border-t border-gold-light/60 bg-ivory">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <h3 className="font-serif text-lg font-semibold text-maroon">{SITE_NAME}</h3>
+          <h3 className="font-brand text-lg font-medium text-maroon">{SITE_NAME}</h3>
           <p className="mt-1 text-xs italic text-foreground/60">{SITE_TAGLINE}</p>
           <p className="mt-3 text-sm text-foreground/70">
             A home-based saree boutique bringing beautiful, high-quality sarees to women who

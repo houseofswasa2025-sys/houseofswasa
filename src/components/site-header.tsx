@@ -38,7 +38,7 @@ export function SiteHeader() {
             className="h-11 w-11 rounded-full bg-maroon object-contain p-1.5"
             priority
           />
-          <span className="hidden font-serif text-xl font-semibold text-maroon sm:block">
+          <span className="hidden font-brand text-xl font-medium text-maroon sm:block">
             {SITE_NAME}
           </span>
         </Link>

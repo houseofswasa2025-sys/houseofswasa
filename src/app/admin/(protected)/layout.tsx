@@ -22,7 +22,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
             className="h-9 w-9 rounded-full bg-maroon object-contain p-1"
           />
           <div className="leading-tight">
-            <p className="font-serif text-base font-semibold text-maroon">House of Swasa</p>
+            <p className="font-brand text-base font-medium text-maroon">House of Swasa</p>
             <p className="text-[11px] uppercase tracking-wide text-foreground/40">Admin</p>
           </div>
         </Link>
