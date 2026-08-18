@@ -17,12 +17,14 @@ export function ProductGrid({ products }: { products: Product[] }) {
       {products.map((p) => (
         <RevealItem key={p.id}>
           <ProductCard
+            id={p.id}
             slug={p.slug}
             name={p.name}
             price={p.price}
             salePrice={p.salePrice}
             image={p.images[0] ?? ""}
             fabric={p.fabric}
+            colors={p.colors}
             stock={p.stock}
             isNewArrival={p.isNewArrival}
             isOnSale={p.isOnSale}

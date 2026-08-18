@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
-export async function updateSiteSettings(formData: FormData) {
+export async function updateSiteSettings(
+  _prevState: { success: boolean } | undefined,
+  formData: FormData
+) {
   await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: {
@@ -26,4 +29,5 @@ export async function updateSiteSettings(formData: FormData) {
   });
 
   revalidatePath("/", "layout");
+  return { success: true };
 }

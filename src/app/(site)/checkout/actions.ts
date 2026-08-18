@@ -64,6 +64,7 @@ export async function placeOrder(input: CheckoutInput) {
           create: input.items.map((i) => ({
             productId: i.productId,
             productName: i.name,
+            image: products.find((p) => p.id === i.productId)?.images[0],
             price: i.price,
             quantity: i.quantity,
             color: i.color,

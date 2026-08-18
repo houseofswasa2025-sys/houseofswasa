@@ -61,7 +61,7 @@ export function SiteHeader() {
             onMouseLeave={() => setCategoriesOpen(false)}
           >
             <button className="text-sm font-medium text-foreground/80 hover:text-maroon">
-              Categories ▾
+              Collections ▾
             </button>
             <AnimatePresence>
               {categoriesOpen && (
@@ -144,7 +144,7 @@ export function SiteHeader() {
             ))}
             <div className="mt-1 border-t border-gold-light/60 pt-2">
               <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
-                Categories
+                Collections
               </p>
               {CATEGORIES.map((cat) => (
                 <Link

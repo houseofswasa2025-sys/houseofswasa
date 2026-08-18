@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { formatPrice, whatsappLink } from "@/lib/constants";
-import { updateOrderStatus } from "../actions";
-
-const STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
+import { OrderStatusButtons } from "../order-status-buttons";
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +28,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
           href={whatsappLink(`Hi ${order.customerName}, this is House of Swasa regarding your order ${order.orderNumber}.`, order.phone.replace(/\D/g, ""))}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-block rounded-full border border-[#25D366] px-3 py-1.5 text-xs font-semibold text-[#128C4A] hover:bg-[#25D366]/10"
+          className="mt-3 inline-block rounded-full border border-[#25D366] px-3 py-1.5 text-xs font-semibold text-[#128C4A] transition-transform active:scale-95 hover:bg-[#25D366]/10"
         >
           Message on WhatsApp
         </a>
@@ -37,10 +36,13 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
       <div className="mb-6 rounded-xl border border-gold-light/60 bg-white p-4">
         <h2 className="mb-3 font-semibold text-foreground">Items</h2>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {order.items.map((item) => (
-            <div key={item.id} className="flex justify-between text-sm">
-              <span>
+            <div key={item.id} className="flex items-center gap-3 text-sm">
+              <div className="relative h-14 w-11 shrink-0 overflow-hidden rounded bg-ivory">
+                {item.image && <Image src={item.image} alt="" fill className="object-cover" />}
+              </div>
+              <span className="flex-1">
                 {item.productName} {item.color ? `(${item.color})` : ""} × {item.quantity}
               </span>
               <span className="font-medium">{formatPrice(item.price * item.quantity)}</span>
@@ -60,21 +62,7 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
 
       <div className="rounded-xl border border-gold-light/60 bg-white p-4">
         <h2 className="mb-3 font-semibold text-foreground">Update Status</h2>
-        <div className="flex flex-wrap gap-2">
-          {STATUSES.map((s) => (
-            <form key={s} action={updateOrderStatus.bind(null, order.id, s)}>
-              <button
-                className={`rounded-full px-3 py-1.5 text-xs font-medium ${
-                  order.status === s
-                    ? "bg-maroon text-white"
-                    : "border border-gold-light text-foreground/70 hover:border-maroon"
-                }`}
-              >
-                {s}
-              </button>
-            </form>
-          ))}
-        </div>
+        <OrderStatusButtons orderId={order.id} status={order.status} />
       </div>
     </div>
   );

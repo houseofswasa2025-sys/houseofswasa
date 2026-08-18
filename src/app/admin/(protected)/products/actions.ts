@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put, del } from "@vercel/blob";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
 
@@ -10,13 +11,25 @@ function parseList(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
 }
 
+async function compressImage(file: File): Promise<Buffer> {
+  const buffer = Buffer.from(await file.arrayBuffer());
+  return sharp(buffer)
+    .rotate()
+    .resize({ width: 1600, withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+}
+
 async function uploadImages(formData: FormData): Promise<string[]> {
   const files = formData.getAll("newImages").filter((f): f is File => f instanceof File && f.size > 0);
   const uploaded = await Promise.all(
     files.map(async (file) => {
-      const blob = await put(`products/${Date.now()}-${file.name}`, file, {
+      const compressed = await compressImage(file);
+      const baseName = file.name.replace(/\.[^.]+$/, "");
+      const blob = await put(`products/${Date.now()}-${baseName}.webp`, compressed, {
         access: "public",
         addRandomSuffix: true,
+        contentType: "image/webp",
       });
       return blob.url;
     })

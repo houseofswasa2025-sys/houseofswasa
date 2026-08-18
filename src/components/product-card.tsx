@@ -1,26 +1,31 @@
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice, whatsappLink } from "@/lib/constants";
+import { QuickAddButton } from "@/components/quick-add-button";
 
 type Props = {
+  id: string;
   slug: string;
   name: string;
   price: number;
   salePrice: number | null;
   image: string;
   fabric: string;
+  colors: string[];
   stock: number;
   isNewArrival?: boolean;
   isOnSale?: boolean;
 };
 
 export function ProductCard({
+  id,
   slug,
   name,
   price,
   salePrice,
   image,
   fabric,
+  colors,
   stock,
   isNewArrival,
   isOnSale,
@@ -78,14 +83,26 @@ export function ProductCard({
           )}
         </div>
 
-        <a
-          href={whatsappLink(`Hi! I'm interested in "${name}" (${formatPrice(displayPrice)}). Is it available?`)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] transition-transform duration-150 hover:bg-[#25D366]/10 active:scale-95"
-        >
-          Order on WhatsApp
-        </a>
+        <div className="mt-auto">
+          <QuickAddButton
+            productId={id}
+            slug={slug}
+            name={name}
+            price={displayPrice}
+            image={image}
+            colors={colors}
+            stock={stock}
+          />
+
+          <a
+            href={whatsappLink(`Hi! I'm interested in "${name}" (${formatPrice(displayPrice)}). Is it available?`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 block rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] transition-transform duration-150 hover:bg-[#25D366]/10 active:scale-95"
+          >
+            Order on WhatsApp
+          </a>
+        </div>
       </div>
     </div>
   );
