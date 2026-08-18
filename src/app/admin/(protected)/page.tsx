@@ -1,0 +1,63 @@
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { formatPrice } from "@/lib/constants";
+
+export default async function AdminDashboardPage() {
+  const [totalOrders, pendingOrders, totalProducts, lowStock, recentOrders] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: "PENDING" } }),
+    prisma.product.count(),
+    prisma.product.count({ where: { stock: { lte: 5 }, isActive: true } }),
+    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+  ]);
+
+  const stats = [
+    { label: "Total Orders", value: totalOrders },
+    { label: "Pending Orders", value: pendingOrders },
+    { label: "Products", value: totalProducts },
+    { label: "Low Stock (≤5)", value: lowStock },
+  ];
+
+  return (
+    <div>
+      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Dashboard</h1>
+
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-xl border border-gold-light/60 bg-white p-4">
+            <p className="text-xs uppercase tracking-wide text-foreground/50">{s.label}</p>
+            <p className="mt-1 text-2xl font-semibold text-maroon">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-gold-light/60 bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-semibold text-foreground">Recent Orders</h2>
+          <Link href="/admin/orders" className="text-sm text-maroon hover:underline">
+            View all
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {recentOrders.map((o) => (
+            <Link
+              key={o.id}
+              href={`/admin/orders/${o.id}`}
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-ivory"
+            >
+              <div>
+                <p className="font-medium text-foreground">{o.orderNumber}</p>
+                <p className="text-xs text-foreground/50">{o.customerName}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-foreground">{formatPrice(o.total)}</p>
+                <p className="text-xs uppercase text-foreground/50">{o.status}</p>
+              </div>
+            </Link>
+          ))}
+          {recentOrders.length === 0 && <p className="text-sm text-foreground/50">No orders yet.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
