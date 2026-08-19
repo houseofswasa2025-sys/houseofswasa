@@ -5,16 +5,25 @@ import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/constants";
 import { createManualOrder } from "../actions";
 
+type ColorOption = { id: string; name: string; stock: number };
+
 type ProductOption = {
   id: string;
   name: string;
   price: number;
   salePrice: number | null;
-  stock: number;
   images: string[];
+  colors: ColorOption[];
 };
 
-type LineItem = { productId: string; name: string; price: number; quantity: number; maxStock: number };
+type LineItem = {
+  productId: string;
+  colorId: string;
+  label: string;
+  price: number;
+  quantity: number;
+  maxStock: number;
+};
 
 const STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
@@ -30,6 +39,8 @@ export function ManualOrderForm({
   const router = useRouter();
   const [items, setItems] = useState<LineItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id ?? "");
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const [selectedColorId, setSelectedColorId] = useState(selectedProduct?.colors[0]?.id ?? "");
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -47,8 +58,11 @@ export function ManualOrderForm({
   useEffect(() => {
     if (didPrefill.current) return;
     didPrefill.current = true;
-    if (prefillProductId && products.some((p) => p.id === prefillProductId)) {
-      addItem(prefillProductId);
+    if (prefillProductId) {
+      const product = products.find((p) => p.id === prefillProductId);
+      if (product?.colors[0]) {
+        addItem(prefillProductId, product.colors[0].id);
+      }
     }
     if (prefillProductName) {
       setNotes((n) => n || `Enquired about: ${prefillProductName}`);
@@ -56,37 +70,50 @@ export function ManualOrderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function addItem(productId: string) {
+  function onSelectProduct(productId: string) {
+    setSelectedProductId(productId);
     const product = products.find((p) => p.id === productId);
-    if (!product) return;
+    setSelectedColorId(product?.colors[0]?.id ?? "");
+  }
+
+  function addItem(productId: string, colorId: string) {
+    const product = products.find((p) => p.id === productId);
+    const color = product?.colors.find((c) => c.id === colorId);
+    if (!product || !color) return;
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === productId);
+      const existing = prev.find((i) => i.productId === productId && i.colorId === colorId);
       if (existing) {
         return prev.map((i) =>
-          i.productId === productId ? { ...i, quantity: Math.min(i.quantity + 1, i.maxStock) } : i
+          i === existing ? { ...i, quantity: Math.min(i.quantity + 1, i.maxStock) } : i
         );
       }
       return [
         ...prev,
         {
           productId: product.id,
-          name: product.name,
+          colorId: color.id,
+          label: `${product.name} — ${color.name}`,
           price: product.salePrice ?? product.price,
           quantity: 1,
-          maxStock: product.stock,
+          maxStock: color.stock,
         },
       ];
     });
   }
 
-  function updateQuantity(productId: string, quantity: number) {
+  function updateQuantity(key: string, quantity: number) {
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.max(1, Math.min(quantity, i.maxStock)) } : i))
+      prev.map((i) =>
+        `${i.productId}-${i.colorId}` === key
+          ? { ...i, quantity: Math.max(1, Math.min(quantity, i.maxStock)) }
+          : i
+      )
     );
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((i) => `${i.productId}-${i.colorId}` !== key));
   }
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -116,7 +143,7 @@ export function ManualOrderForm({
       pincode: pincode || undefined,
       notes: notes || undefined,
       status,
-      items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: items.map((i) => ({ productId: i.productId, colorId: i.colorId, quantity: i.quantity })),
     });
     setPending(false);
 
@@ -131,22 +158,34 @@ export function ManualOrderForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="rounded-xl border border-gold-light/60 bg-white p-4">
         <h2 className="mb-3 font-semibold text-foreground">Items</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
+            onChange={(e) => onSelectProduct(e.target.value)}
             className="flex-1 rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
           >
             {products.map((p) => (
-              <option key={p.id} value={p.id} disabled={p.stock <= 0}>
-                {p.name} — {formatPrice(p.salePrice ?? p.price)} {p.stock <= 0 ? "(out of stock)" : `(${p.stock} left)`}
+              <option key={p.id} value={p.id}>
+                {p.name} — {formatPrice(p.salePrice ?? p.price)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={selectedColorId}
+            onChange={(e) => setSelectedColorId(e.target.value)}
+            className="rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
+          >
+            {selectedProduct?.colors.map((c) => (
+              <option key={c.id} value={c.id} disabled={c.stock <= 0}>
+                {c.name} {c.stock <= 0 ? "(out of stock)" : `(${c.stock} left)`}
               </option>
             ))}
           </select>
           <button
             type="button"
-            onClick={() => addItem(selectedProductId)}
-            className="rounded-lg bg-maroon px-4 py-2 text-sm font-semibold text-white transition-transform active:scale-95"
+            onClick={() => addItem(selectedProductId, selectedColorId)}
+            disabled={!selectedColorId}
+            className="rounded-lg bg-maroon px-4 py-2 text-sm font-semibold text-white transition-transform active:scale-95 disabled:opacity-50"
           >
             Add
           </button>
@@ -154,37 +193,40 @@ export function ManualOrderForm({
 
         {items.length > 0 && (
           <div className="mt-4 space-y-2">
-            {items.map((item) => (
-              <div key={item.productId} className="flex items-center justify-between gap-2 rounded-lg bg-ivory px-3 py-2 text-sm">
-                <span className="flex-1">{item.name}</span>
-                <div className="flex items-center gap-1.5">
+            {items.map((item) => {
+              const key = `${item.productId}-${item.colorId}`;
+              return (
+                <div key={key} className="flex items-center justify-between gap-2 rounded-lg bg-ivory px-3 py-2 text-sm">
+                  <span className="flex-1">{item.label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(key, item.quantity - 1)}
+                      className="h-6 w-6 rounded-full border border-gold-light text-xs"
+                    >
+                      −
+                    </button>
+                    <span className="w-5 text-center">{item.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateQuantity(key, item.quantity + 1)}
+                      className="h-6 w-6 rounded-full border border-gold-light text-xs disabled:opacity-40"
+                      disabled={item.quantity >= item.maxStock}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="w-20 text-right font-medium">{formatPrice(item.price * item.quantity)}</span>
                   <button
                     type="button"
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="h-6 w-6 rounded-full border border-gold-light text-xs"
+                    onClick={() => removeItem(key)}
+                    className="text-xs text-red-600 hover:underline"
                   >
-                    −
-                  </button>
-                  <span className="w-5 text-center">{item.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    className="h-6 w-6 rounded-full border border-gold-light text-xs disabled:opacity-40"
-                    disabled={item.quantity >= item.maxStock}
-                  >
-                    +
+                    Remove
                   </button>
                 </div>
-                <span className="w-20 text-right font-medium">{formatPrice(item.price * item.quantity)}</span>
-                <button
-                  type="button"
-                  onClick={() => removeItem(item.productId)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+              );
+            })}
             <div className="flex justify-between border-t border-gold-light/60 pt-2 text-sm font-semibold">
               <span>Total</span>
               <span className="text-maroon">{formatPrice(total)}</span>

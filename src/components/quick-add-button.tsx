@@ -10,11 +10,11 @@ type Props = {
   name: string;
   price: number;
   image: string;
-  colors: string[];
+  color?: string;
   stock: number;
 };
 
-export function QuickAddButton({ productId, slug, name, price, image, colors, stock }: Props) {
+export function QuickAddButton({ productId, slug, name, price, image, color, stock }: Props) {
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
@@ -33,7 +33,7 @@ export function QuickAddButton({ productId, slug, name, price, image, colors, st
     <motion.button
       onClick={(e) => {
         e.preventDefault();
-        addItem({ productId, slug, name, price, image, color: colors[0], maxStock: stock });
+        addItem({ productId, slug, name, price, image, color, maxStock: stock });
         setAdded(true);
         setTimeout(() => setAdded(false), 1500);
       }}

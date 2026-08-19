@@ -7,6 +7,13 @@ import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import type { OrderStatus } from "@/generated/prisma/client";
 
+async function findColorRow(productId: string, colorName: string | null) {
+  if (!colorName) return null;
+  return prisma.productColor.findUnique({
+    where: { productId_name: { productId, name: colorName } },
+  });
+}
+
 export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus
@@ -21,42 +28,43 @@ export async function updateOrderStatus(
   const wasCancelled = order.status === "CANCELLED";
   const isCancelling = status === "CANCELLED";
 
+  const itemsWithProduct = order.items.filter((i) => i.productId);
+  const colorRows = await Promise.all(
+    itemsWithProduct.map((i) => findColorRow(i.productId!, i.color))
+  );
+
   if (isCancelling && !wasCancelled) {
-    // Restore stock for items tied to a product.
+    // Restore stock for items tied to a known color.
     await prisma.$transaction([
-      ...order.items
-        .filter((i) => i.productId)
-        .map((i) =>
-          prisma.product.update({
-            where: { id: i.productId! },
-            data: { stock: { increment: i.quantity } },
+      ...itemsWithProduct
+        .map((i, idx) => ({ item: i, colorRow: colorRows[idx] }))
+        .filter((x) => x.colorRow)
+        .map((x) =>
+          prisma.productColor.update({
+            where: { id: x.colorRow!.id },
+            data: { stock: { increment: x.item.quantity } },
           })
         ),
       prisma.order.update({ where: { id: orderId }, data: { status } }),
     ]);
   } else if (wasCancelled && !isCancelling) {
     // Re-reserve stock; block if there isn't enough left.
-    const products = await prisma.product.findMany({
-      where: { id: { in: order.items.filter((i) => i.productId).map((i) => i.productId!) } },
-    });
-    for (const item of order.items) {
-      if (!item.productId) continue;
-      const product = products.find((p) => p.id === item.productId);
-      if (!product || product.stock < item.quantity) {
+    for (let i = 0; i < itemsWithProduct.length; i++) {
+      const item = itemsWithProduct[i];
+      const colorRow = colorRows[i];
+      if (!colorRow || colorRow.stock < item.quantity) {
         return {
-          error: `Cannot restore this order — "${item.productName}" no longer has enough stock (${product?.stock ?? 0} left, needs ${item.quantity}). Adjust stock first.`,
+          error: `Cannot restore this order — "${item.productName}"${item.color ? ` (${item.color})` : ""} no longer has enough stock (${colorRow?.stock ?? 0} left, needs ${item.quantity}). Adjust stock first.`,
         };
       }
     }
     await prisma.$transaction([
-      ...order.items
-        .filter((i) => i.productId)
-        .map((i) =>
-          prisma.product.update({
-            where: { id: i.productId! },
-            data: { stock: { decrement: i.quantity } },
-          })
-        ),
+      ...itemsWithProduct.map((item, idx) =>
+        prisma.productColor.update({
+          where: { id: colorRows[idx]!.id },
+          data: { stock: { decrement: item.quantity } },
+        })
+      ),
       prisma.order.update({ where: { id: orderId }, data: { status } }),
     ]);
   } else {
@@ -71,7 +79,7 @@ export async function updateOrderStatus(
   return { success: true };
 }
 
-export type ManualOrderItem = { productId: string; quantity: number };
+export type ManualOrderItem = { productId: string; colorId: string; quantity: number };
 
 export type ManualOrderInput = {
   customerName: string;
@@ -104,24 +112,29 @@ export async function createManualOrder(input: ManualOrderInput) {
 
   const products = await prisma.product.findMany({
     where: { id: { in: input.items.map((i) => i.productId) } },
+    include: { colors: true },
   });
 
   for (const item of input.items) {
     const product = products.find((p) => p.id === item.productId);
-    if (!product) return { error: "One of the selected products no longer exists." };
-    if (product.stock < item.quantity) {
-      return { error: `"${product.name}" only has ${product.stock} in stock.` };
+    const color = product?.colors.find((c) => c.id === item.colorId);
+    if (!product || !color) return { error: "One of the selected products/colors no longer exists." };
+    if (color.stock < item.quantity) {
+      return { error: `"${product.name}" (${color.name}) only has ${color.stock} in stock.` };
     }
   }
 
   const orderItems = input.items.map((item) => {
     const product = products.find((p) => p.id === item.productId)!;
+    const color = product.colors.find((c) => c.id === item.colorId)!;
     return {
       productId: product.id,
+      colorId: color.id,
       productName: product.name,
-      image: product.images[0],
+      image: color.images[0] ?? product.images[0],
       price: product.salePrice ?? product.price,
       quantity: item.quantity,
+      color: color.name,
     };
   });
 
@@ -147,13 +160,15 @@ export async function createManualOrder(input: ManualOrderInput) {
           total: subtotal,
           status: input.status,
           source: "WHATSAPP",
-          items: { create: orderItems },
+          items: {
+            create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+          },
         },
       });
 
       for (const item of orderItems) {
-        await tx.product.update({
-          where: { id: item.productId },
+        await tx.productColor.update({
+          where: { id: item.colorId },
           data: { stock: { decrement: item.quantity } },
         });
       }

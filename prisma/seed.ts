@@ -400,12 +400,23 @@ async function main() {
 
   console.log("Seeding products...");
   for (const p of products) {
+    const { colors: colorNames, stock, ...rest } = p;
     const slug = slugify(p.name);
     const images = [placeholderFor(p.fabric)];
+
+    const base = Math.floor(stock / colorNames.length);
+    const remainder = stock % colorNames.length;
+    const colorData = colorNames.map((name, i) => ({
+      name,
+      images,
+      stock: base + (i < remainder ? 1 : 0),
+      sortOrder: i,
+    }));
+
     await prisma.product.upsert({
       where: { slug },
       update: { images },
-      create: { ...p, slug, images },
+      create: { ...rest, slug, images, colors: { create: colorData } },
     });
   }
 

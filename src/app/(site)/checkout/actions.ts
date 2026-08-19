@@ -38,28 +38,33 @@ export async function placeOrder(input: CheckoutInput) {
   const session = await auth();
 
   const productIds = input.items.map((i) => i.productId);
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } } });
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { colors: { orderBy: { sortOrder: "asc" } } },
+  });
 
-  for (const item of input.items) {
+  // Resolve each cart line to its specific ProductColor row (never trust client price/name).
+  const resolved = input.items.map((item) => {
     const product = products.find((p) => p.id === item.productId);
-    if (!product || !product.isActive || product.stock < item.quantity) {
+    const color = product?.colors.find((c) => c.name === item.color) ?? product?.colors[0];
+    return { item, product, color };
+  });
+
+  for (const { item, product, color } of resolved) {
+    if (!product || !product.isActive || !color || color.stock < item.quantity) {
       return { error: `Sorry, "${item.name}" doesn't have enough stock. Please update your cart.` };
     }
   }
 
-  // Prices are always recomputed from the database — client-supplied prices are never trusted.
-  const orderItems = input.items.map((item) => {
-    const product = products.find((p) => p.id === item.productId)!;
-    const price = product.salePrice ?? product.price;
-    return {
-      productId: item.productId,
-      productName: product.name,
-      image: product.images[0],
-      price,
-      quantity: item.quantity,
-      color: item.color,
-    };
-  });
+  const orderItems = resolved.map(({ item, product, color }) => ({
+    productId: product!.id,
+    productName: product!.name,
+    image: color!.images[0] ?? product!.images[0],
+    price: product!.salePrice ?? product!.price,
+    quantity: item.quantity,
+    color: color!.name,
+    colorId: color!.id,
+  }));
 
   const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const orderNumber = `HOS${Date.now().toString().slice(-8)}`;
@@ -80,13 +85,15 @@ export async function placeOrder(input: CheckoutInput) {
         notes: input.notes || undefined,
         subtotal,
         total: subtotal,
-        items: { create: orderItems },
+        items: {
+          create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+        },
       },
     });
 
     for (const item of orderItems) {
-      await tx.product.update({
-        where: { id: item.productId },
+      await tx.productColor.update({
+        where: { id: item.colorId },
         data: { stock: { decrement: item.quantity } },
       });
     }

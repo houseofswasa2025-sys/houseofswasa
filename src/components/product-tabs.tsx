@@ -4,13 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { ProductGrid } from "@/components/product-grid";
-import type { Product } from "@/generated/prisma/client";
+import type { ProductWithColors } from "@/lib/products";
 
 type Tab = {
   key: string;
   label: string;
   href: string;
-  products: Product[];
+  products: ProductWithColors[];
 };
 
 export function ProductTabs({ tabs }: { tabs: Tab[] }) {

@@ -10,12 +10,11 @@ type Props = {
   name: string;
   price: number;
   image: string;
-  colors: string[];
+  color?: string;
   stock: number;
 };
 
-export function AddToCartButton({ productId, slug, name, price, image, colors, stock }: Props) {
-  const [color, setColor] = useState(colors[0] ?? "");
+export function AddToCartButton({ productId, slug, name, price, image, color, stock }: Props) {
   const [added, setAdded] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
@@ -32,29 +31,9 @@ export function AddToCartButton({ productId, slug, name, price, image, colors, s
 
   return (
     <div className="space-y-3">
-      {colors.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-foreground/60">Color</p>
-          <div className="flex flex-wrap gap-2">
-            {colors.map((c) => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                className={`rounded-full border px-3 py-1 text-xs font-medium transition-all active:scale-90 ${
-                  color === c
-                    ? "border-maroon bg-maroon text-white"
-                    : "border-gold-light text-foreground/70 hover:border-maroon"
-                }`}
-              >
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
       <motion.button
         onClick={() => {
-          addItem({ productId, slug, name, price, image, color: color || undefined, maxStock: stock });
+          addItem({ productId, slug, name, price, image, color, maxStock: stock });
           setAdded(true);
           setTimeout(() => setAdded(false), 1500);
         }}

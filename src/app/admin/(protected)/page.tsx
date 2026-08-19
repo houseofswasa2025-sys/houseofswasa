@@ -11,7 +11,7 @@ export default async function AdminDashboardPage() {
     prisma.order.count(),
     prisma.order.count({ where: { status: "PENDING" } }),
     prisma.product.count(),
-    prisma.product.count({ where: { stock: { lte: 5 }, isActive: true } }),
+    prisma.productColor.count({ where: { stock: { lte: 5 }, product: { isActive: true } } }),
     prisma.whatsAppClick.count({ where: { createdAt: { gte: since7d } } }),
     prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
   ]);
@@ -20,7 +20,7 @@ export default async function AdminDashboardPage() {
     { label: "Total Orders", value: totalOrders },
     { label: "Pending Orders", value: pendingOrders },
     { label: "Products", value: totalProducts },
-    { label: "Low Stock (≤5)", value: lowStock },
+    { label: "Low Stock Colors (≤5)", value: lowStock },
     { label: "WhatsApp Clicks (7d)", value: whatsappClicks7d, href: "/admin/whatsapp" },
   ];
 

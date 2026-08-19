@@ -17,6 +17,8 @@ function parseList(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
 }
 
+class ImageUploadError extends Error {}
+
 async function compressImage(file: File): Promise<Buffer> {
   const buffer = Buffer.from(await file.arrayBuffer());
   return sharp(buffer)
@@ -26,10 +28,7 @@ async function compressImage(file: File): Promise<Buffer> {
     .toBuffer();
 }
 
-class ImageUploadError extends Error {}
-
-async function uploadImages(formData: FormData): Promise<string[]> {
-  const files = formData.getAll("newImages").filter((f): f is File => f instanceof File && f.size > 0);
+async function uploadFiles(files: File[]): Promise<string[]> {
   if (files.length === 0) return [];
 
   for (const file of files) {
@@ -53,15 +52,47 @@ async function uploadImages(formData: FormData): Promise<string[]> {
       });
       uploaded.push(blob.url);
     }
-  } catch (error) {
-    // Best-effort cleanup of whatever did make it to Blob before the failure.
+  } catch {
     await Promise.all(uploaded.map((url) => del(url).catch(() => {})));
-    throw new ImageUploadError(
-      `Couldn't upload "${files[uploaded.length]?.name ?? "an image"}" — please check your connection and try again.`
-    );
+    throw new ImageUploadError(`Couldn't upload one of the images — please check your connection and try again.`);
   }
 
   return uploaded;
+}
+
+type ColorRowInput = {
+  key: string;
+  colorId: string | null;
+  name: string;
+  stock: number;
+  existingImages: string[];
+  newFiles: File[];
+};
+
+function parseColorRows(formData: FormData): ColorRowInput[] {
+  const rowKeys = formData.getAll("colorRowKeys").map(String);
+  const colorIds = formData.getAll("colorIds").map(String);
+  const names = formData.getAll("colorNames").map(String);
+  const stocks = formData.getAll("colorStocks").map(String);
+
+  return rowKeys.map((key, i) => ({
+    key,
+    colorId: colorIds[i] || null,
+    name: (names[i] ?? "").trim(),
+    stock: Math.max(0, Math.floor(Number(stocks[i]) || 0)),
+    existingImages: formData.getAll(`colorExistingImages_${key}`).map(String).filter(Boolean),
+    newFiles: formData
+      .getAll(`colorNewImages_${key}`)
+      .filter((f): f is File => f instanceof File && f.size > 0),
+  }));
+}
+
+function validateColorRows(rows: ColorRowInput[]): string | null {
+  if (rows.length === 0) return "Add at least one color.";
+  const names = rows.map((r) => r.name.toLowerCase());
+  if (rows.some((r) => !r.name)) return "Every color needs a name.";
+  if (new Set(names).size !== names.length) return "Color names must be unique for this product.";
+  return null;
 }
 
 function buildProductData(formData: FormData) {
@@ -80,8 +111,6 @@ function buildProductData(formData: FormData) {
     fabric: String(formData.get("fabric") || ""),
     categories: parseList(formData, "categories"),
     occasions: parseList(formData, "occasions"),
-    colors: parseList(formData, "colors"),
-    stock: Number(formData.get("stock") || 0),
     isNewArrival: formData.get("isNewArrival") === "on",
     isBestSeller: formData.get("isBestSeller") === "on",
     isOnSale: formData.get("isOnSale") === "on",
@@ -91,7 +120,7 @@ function buildProductData(formData: FormData) {
 
 function friendlySaveError(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "That slug is already used by another product — please choose a different one.";
+    return "That slug or color name is already used — please make it unique.";
   }
   return "Couldn't save the product. Please try again.";
 }
@@ -102,22 +131,37 @@ export async function createProduct(
 ): Promise<ProductFormState> {
   await requireAdmin();
 
-  let newImages: string[];
+  const rows = parseColorRows(formData);
+  const validationError = validateColorRows(rows);
+  if (validationError) return { error: validationError };
+
+  const data = buildProductData(formData);
+
+  let uploadedByRow: string[][];
   try {
-    newImages = await uploadImages(formData);
+    uploadedByRow = await Promise.all(rows.map((r) => uploadFiles(r.newFiles)));
   } catch (error) {
     return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
   }
-
-  const keptExisting = parseList(formData, "existingImages");
-  const data = buildProductData(formData);
+  const allUploaded = uploadedByRow.flat();
 
   try {
     await prisma.product.create({
-      data: { ...data, images: [...keptExisting, ...newImages] },
+      data: {
+        ...data,
+        images: uploadedByRow[0] ?? [],
+        colors: {
+          create: rows.map((row, i) => ({
+            name: row.name,
+            stock: row.stock,
+            images: [...row.existingImages, ...uploadedByRow[i]],
+            sortOrder: i,
+          })),
+        },
+      },
     });
   } catch (error) {
-    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
+    await Promise.all(allUploaded.map((url) => del(url).catch(() => {})));
     return { error: friendlySaveError(error) };
   }
 
@@ -133,37 +177,64 @@ export async function updateProduct(
 ): Promise<ProductFormState> {
   await requireAdmin();
 
-  let newImages: string[];
+  const existingProduct = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { colors: true },
+  });
+  if (!existingProduct) return { error: "This product no longer exists." };
+
+  const rows = parseColorRows(formData);
+  const validationError = validateColorRows(rows);
+  if (validationError) return { error: validationError };
+
+  const data = buildProductData(formData);
+
+  let uploadedByRow: string[][];
   try {
-    newImages = await uploadImages(formData);
+    uploadedByRow = await Promise.all(rows.map((r) => uploadFiles(r.newFiles)));
   } catch (error) {
     return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
   }
+  const allUploaded = uploadedByRow.flat();
 
-  const keptExisting = parseList(formData, "existingImages");
-  const data = buildProductData(formData);
-
-  const existingProduct = await prisma.product.findUnique({ where: { id: productId } });
-  if (!existingProduct) {
-    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
-    return { error: "This product no longer exists." };
-  }
+  const submittedColorIds = new Set(rows.map((r) => r.colorId).filter(Boolean));
+  const removedColors = existingProduct.colors.filter((c) => !submittedColorIds.has(c.id));
 
   try {
-    await prisma.product.update({
-      where: { id: productId },
-      data: { ...data, images: [...keptExisting, ...newImages] },
+    await prisma.$transaction(async (tx) => {
+      await tx.product.update({ where: { id: productId }, data });
+
+      for (const color of removedColors) {
+        await tx.productColor.delete({ where: { id: color.id } });
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const images = [...row.existingImages, ...uploadedByRow[i]];
+        if (row.colorId) {
+          await tx.productColor.update({
+            where: { id: row.colorId },
+            data: { name: row.name, stock: row.stock, images, sortOrder: i },
+          });
+        } else {
+          await tx.productColor.create({
+            data: { productId, name: row.name, stock: row.stock, images, sortOrder: i },
+          });
+        }
+      }
     });
   } catch (error) {
-    await Promise.all(newImages.map((url) => del(url).catch(() => {})));
+    await Promise.all(allUploaded.map((url) => del(url).catch(() => {})));
     return { error: friendlySaveError(error) };
   }
 
-  // Only remove the now-unused old images from Blob after the DB update has
-  // actually succeeded, so a failed save never leaves the product pointing
-  // at deleted files.
-  const removedImages = existingProduct.images.filter((img) => !keptExisting.includes(img));
-  await Promise.all(removedImages.map((url) => del(url).catch(() => {})));
+  // Only remove now-unused Blob images after the DB update has actually succeeded.
+  const keptImages = new Set(rows.flatMap((r, i) => [...r.existingImages, ...uploadedByRow[i]]));
+  const orphanedImages = [
+    ...existingProduct.images.filter((img) => !keptImages.has(img)),
+    ...removedColors.flatMap((c) => c.images.filter((img) => !keptImages.has(img))),
+  ];
+  await Promise.all(orphanedImages.map((url) => del(url).catch(() => {})));
 
   revalidatePath("/admin/products");
   revalidatePath(`/products/${data.slug}`);
@@ -174,10 +245,11 @@ export async function updateProduct(
 export async function deleteProduct(productId: string) {
   await requireAdmin();
 
-  const product = await prisma.product.findUnique({ where: { id: productId } });
+  const product = await prisma.product.findUnique({ where: { id: productId }, include: { colors: true } });
   if (product) {
     await prisma.product.delete({ where: { id: productId } });
-    await Promise.all(product.images.map((url) => del(url).catch(() => {})));
+    const allImages = [...product.images, ...product.colors.flatMap((c) => c.images)];
+    await Promise.all(allImages.map((url) => del(url).catch(() => {})));
   }
   revalidatePath("/admin/products");
   revalidatePath("/sarees");

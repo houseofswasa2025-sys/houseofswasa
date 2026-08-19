@@ -11,7 +11,14 @@ export default async function NewManualOrderPage({
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, price: true, salePrice: true, stock: true, images: true },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      salePrice: true,
+      images: true,
+      colors: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true, stock: true } },
+    },
   });
 
   return (

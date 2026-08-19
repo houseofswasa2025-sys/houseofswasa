@@ -1,8 +1,8 @@
 import { ProductCard } from "@/components/product-card";
 import { RevealGroup, RevealItem } from "@/components/reveal";
-import type { Product } from "@/generated/prisma/client";
+import type { ProductWithColors } from "@/lib/products";
 
-export function ProductGrid({ products }: { products: Product[] }) {
+export function ProductGrid({ products }: { products: ProductWithColors[] }) {
   if (products.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center py-20 text-center">
@@ -22,10 +22,8 @@ export function ProductGrid({ products }: { products: Product[] }) {
             name={p.name}
             price={p.price}
             salePrice={p.salePrice}
-            image={p.images[0] ?? ""}
             fabric={p.fabric}
             colors={p.colors}
-            stock={p.stock}
             isNewArrival={p.isNewArrival}
             isOnSale={p.isOnSale}
           />

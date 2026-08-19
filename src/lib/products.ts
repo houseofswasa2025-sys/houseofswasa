@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, Product as PrismaProduct, ProductColor } from "@/generated/prisma/client";
+
+export type ProductWithColors = PrismaProduct & { colors: ProductColor[] };
+export type { ProductColor };
 
 export type ProductFilters = {
   category?: string;
@@ -15,6 +18,8 @@ export type ProductFilters = {
   sort?: "price-asc" | "price-desc" | "newest";
 };
 
+const colorsOrder = { orderBy: { sortOrder: "asc" as const } };
+
 export function buildProductWhere(filters: ProductFilters): Prisma.ProductWhereInput {
   const where: Prisma.ProductWhereInput = { isActive: true };
 
@@ -23,8 +28,14 @@ export function buildProductWhere(filters: ProductFilters): Prisma.ProductWhereI
   if (filters.category) where.categories = { has: filters.category };
   if (filters.fabric) where.fabric = { equals: filters.fabric, mode: "insensitive" };
   if (filters.occasion) where.occasions = { has: filters.occasion };
-  if (filters.color) where.colors = { has: filters.color };
-  if (filters.inStockOnly) where.stock = { gt: 0 };
+
+  const colorConditions: Prisma.ProductColorWhereInput[] = [];
+  if (filters.color) colorConditions.push({ name: filters.color });
+  if (filters.inStockOnly) colorConditions.push({ stock: { gt: 0 } });
+  if (colorConditions.length > 0) {
+    where.colors = { some: { AND: colorConditions } };
+  }
+
   if (filters.search) {
     where.OR = [
       { name: { contains: filters.search, mode: "insensitive" } },
@@ -56,9 +67,21 @@ export async function getProducts(filters: ProductFilters = {}) {
   return prisma.product.findMany({
     where: buildProductWhere(filters),
     orderBy: buildOrderBy(filters.sort),
+    include: { colors: colorsOrder },
   });
 }
 
 export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({ where: { slug } });
+  return prisma.product.findUnique({
+    where: { slug },
+    include: { colors: colorsOrder },
+  });
+}
+
+export function totalStock(product: { colors: { stock: number }[] }) {
+  return product.colors.reduce((sum, c) => sum + c.stock, 0);
+}
+
+export function coverImage(product: { images: string[]; colors: { images: string[] }[] }) {
+  return product.colors[0]?.images[0] ?? product.images[0] ?? "";
 }

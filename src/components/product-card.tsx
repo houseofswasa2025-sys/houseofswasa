@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { formatPrice, whatsappLink } from "@/lib/constants";
 import { QuickAddButton } from "@/components/quick-add-button";
 import { WhatsAppTrackedLink } from "@/components/whatsapp-tracked-link";
+import type { ProductColor } from "@/lib/products";
 
 type Props = {
   id: string;
@@ -10,10 +14,8 @@ type Props = {
   name: string;
   price: number;
   salePrice: number | null;
-  image: string;
   fabric: string;
-  colors: string[];
-  stock: number;
+  colors: ProductColor[];
   isNewArrival?: boolean;
   isOnSale?: boolean;
 };
@@ -24,16 +26,18 @@ export function ProductCard({
   name,
   price,
   salePrice,
-  image,
   fabric,
   colors,
-  stock,
   isNewArrival,
   isOnSale,
 }: Props) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = colors[activeIndex];
+  const totalStock = colors.reduce((sum, c) => sum + c.stock, 0);
   const displayPrice = salePrice ?? price;
   const discount = salePrice ? Math.round(((price - salePrice) / price) * 100) : 0;
   const productUrl = `/products/${slug}`;
+  const image = active?.images[0] ?? "";
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-gold-light/50 bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl">
@@ -41,7 +45,7 @@ export function ProductCard({
         {image ? (
           <Image
             src={image}
-            alt={name}
+            alt={`${name} — ${active.name}`}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -63,7 +67,7 @@ export function ProductCard({
           )}
         </div>
 
-        {stock <= 0 && (
+        {totalStock <= 0 && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/40">
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-foreground">
               Sold Out
@@ -84,22 +88,43 @@ export function ProductCard({
           )}
         </div>
 
-        <div className="mt-auto">
+        {colors.length > 1 && (
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {colors.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setActiveIndex(i);
+                }}
+                title={c.name}
+                aria-label={c.name}
+                className={`h-5 w-5 rounded-full border-2 transition-transform ${
+                  i === activeIndex ? "scale-110 border-maroon" : "border-white ring-1 ring-gold-light"
+                } ${c.stock <= 0 ? "opacity-30" : ""}`}
+                style={{ backgroundImage: c.images[0] ? `url(${c.images[0]})` : undefined, backgroundSize: "cover", backgroundPosition: "center" }}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="mt-auto pt-2">
           <QuickAddButton
             productId={id}
             slug={slug}
             name={name}
             price={displayPrice}
             image={image}
-            colors={colors}
-            stock={stock}
+            color={active?.name}
+            stock={active?.stock ?? 0}
           />
 
           <WhatsAppTrackedLink
             productId={id}
             productName={name}
             page="product-card"
-            href={whatsappLink(`Hi! I'm interested in "${name}" (${formatPrice(displayPrice)}). Is it available?`)}
+            href={whatsappLink(`Hi! I'm interested in "${name}" (${active?.name ?? ""}, ${formatPrice(displayPrice)}). Is it available?`)}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-1.5 block rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] transition-transform duration-150 hover:bg-[#25D366]/10 active:scale-95"
