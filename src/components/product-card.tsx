@@ -88,7 +88,7 @@ export function ProductCard({
           )}
         </div>
 
-        {colors.length > 1 && (
+        {colors.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1.5">
             {colors.map((c, i) => (
               <button
