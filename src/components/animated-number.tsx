@@ -3,7 +3,15 @@
 import { useEffect, useRef } from "react";
 import { animate, useMotionValue, useMotionValueEvent, motion } from "motion/react";
 
-export function AnimatedNumber({ value, className }: { value: number; className?: string }) {
+export function AnimatedNumber({
+  value,
+  className,
+  format,
+}: {
+  value: number;
+  className?: string;
+  format?: (value: number) => string;
+}) {
   const motionValue = useMotionValue(0);
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -13,7 +21,7 @@ export function AnimatedNumber({ value, className }: { value: number; className?
   }, [value, motionValue]);
 
   useMotionValueEvent(motionValue, "change", (latest) => {
-    if (ref.current) ref.current.textContent = Math.round(latest).toString();
+    if (ref.current) ref.current.textContent = format ? format(latest) : Math.round(latest).toString();
   });
 
   return (
