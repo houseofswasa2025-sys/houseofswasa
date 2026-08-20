@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
@@ -72,9 +73,11 @@ export async function updateOrderStatus(
     await prisma.order.update({ where: { id: orderId }, data: { status } });
   }
 
-  sendOrderStatusUpdateEmail({ ...order, status }).catch((err) =>
-    console.error("Order status update email failed:", err)
-  );
+  after(async () => {
+    await sendOrderStatusUpdateEmail({ ...order, status }).catch((err) =>
+      console.error("Order status update email failed:", err)
+    );
+  });
 
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
@@ -182,9 +185,11 @@ export async function createManualOrder(input: ManualOrderInput) {
       return created;
     });
     orderId = order.id;
-    sendOrderConfirmationEmail(order).catch((err) =>
-      console.error("Order confirmation email failed:", err)
-    );
+    after(async () => {
+      await sendOrderConfirmationEmail(order).catch((err) =>
+        console.error("Order confirmation email failed:", err)
+      );
+    });
   } catch {
     return { error: "Couldn't save this order. Please try again." };
   }

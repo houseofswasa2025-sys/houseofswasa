@@ -4,6 +4,7 @@ import type { Order, OrderItem, OrderStatus } from "@/generated/prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "House of Swasa <orders@houseofswasa.com>";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://house-of-swasa-xi.vercel.app";
 
 type OrderWithItems = Order & { items: OrderItem[] };
 
@@ -15,7 +16,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
-const LOGO_URL = "https://www.houseofswasa.com/images/logo-mark.png";
+const LOGO_URL = `${SITE_URL}/images/logo-mark.png`;
 
 function layout(title: string, bodyHtml: string) {
   return `
@@ -130,7 +131,7 @@ export async function sendAdminNewOrderEmail(recipients: string[], order: OrderW
     ${itemsTable(order.items)}
     <p style="text-align:right;font-size:16px;font-weight:600;margin:16px 0 24px;">Total: ${formatPrice(order.total)}</p>
     <p style="margin:0;">
-      <a href="https://www.houseofswasa.com/admin/orders/${order.id}" style="color:#7a1f2f;">View order in admin &rarr;</a>
+      <a href="${SITE_URL}/admin/orders/${order.id}" style="color:#7a1f2f;">View order in admin &rarr;</a>
     </p>`
   );
 

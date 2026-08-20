@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { isValidEmail } from "@/lib/validate-email";
@@ -114,10 +115,15 @@ export async function placeOrder(input: CheckoutInput) {
       .catch(() => {}); // another account may already own this email — order still succeeds either way
   }
 
-  sendOrderConfirmationEmail(order).catch((err) => console.error("Order confirmation email failed:", err));
-  getOrderNotificationRecipients()
-    .then((recipients) => sendAdminNewOrderEmail(recipients, order))
-    .catch((err) => console.error("Admin new-order email failed:", err));
+  after(async () => {
+    await sendOrderConfirmationEmail(order).catch((err) =>
+      console.error("Order confirmation email failed:", err)
+    );
+    const recipients = await getOrderNotificationRecipients().catch(() => []);
+    await sendAdminNewOrderEmail(recipients, order).catch((err) =>
+      console.error("Admin new-order email failed:", err)
+    );
+  });
 
   return { success: true, orderNumber: order.orderNumber, orderId: order.id };
 }
