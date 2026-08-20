@@ -70,7 +70,7 @@ export default async function AdminProductsPage() {
                       Total stock: {totalStock}
                     </span>
                     <AdminActionButton
-                      action={() => toggleActive(p.id, !p.isActive)}
+                      action={toggleActive.bind(null, p.id, !p.isActive)}
                       pendingLabel="..."
                       className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
                         p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
@@ -83,7 +83,7 @@ export default async function AdminProductsPage() {
                         Edit
                       </Link>
                       <AdminActionButton
-                        action={() => deleteProduct(p.id)}
+                        action={deleteProduct.bind(null, p.id)}
                         pendingLabel="Deleting..."
                         confirmMessage={`Delete "${p.name}"? This can't be undone.`}
                         className="text-red-600 hover:underline disabled:opacity-60"
@@ -151,7 +151,7 @@ export default async function AdminProductsPage() {
                       </td>
                       <td className="p-3">
                         <AdminActionButton
-                          action={() => toggleActive(p.id, !p.isActive)}
+                          action={toggleActive.bind(null, p.id, !p.isActive)}
                           pendingLabel="..."
                           className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
                             p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
@@ -166,7 +166,7 @@ export default async function AdminProductsPage() {
                             Edit
                           </Link>
                           <AdminActionButton
-                            action={() => deleteProduct(p.id)}
+                            action={deleteProduct.bind(null, p.id)}
                             pendingLabel="Deleting..."
                             confirmMessage={`Delete "${p.name}"? This can't be undone.`}
                             className="text-red-600 hover:underline disabled:opacity-60"

@@ -18,7 +18,7 @@ export default async function AdminReviewsPage() {
             <p className="mt-1 text-sm text-foreground/70">{r.text}</p>
             <div className="mt-3 flex gap-2">
               <AdminActionButton
-                action={() => setReviewApproval(r.id, !r.approved)}
+                action={setReviewApproval.bind(null, r.id, !r.approved)}
                 pendingLabel="..."
                 className={`rounded-full px-3 py-1 text-xs font-medium disabled:opacity-60 ${
                   r.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
@@ -27,7 +27,7 @@ export default async function AdminReviewsPage() {
                 {r.approved ? "Approved" : "Pending — Approve"}
               </AdminActionButton>
               <AdminActionButton
-                action={() => deleteReview(r.id)}
+                action={deleteReview.bind(null, r.id)}
                 pendingLabel="Deleting..."
                 confirmMessage={`Delete this review from "${r.name}"? This can't be undone.`}
                 className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 disabled:opacity-60"
