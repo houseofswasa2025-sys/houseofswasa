@@ -34,8 +34,14 @@ export async function registerAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: { name, phone, email, passwordHash },
+  });
+
+  // Attach any guest orders placed with this phone before the account existed.
+  await prisma.order.updateMany({
+    where: { userId: null, phone },
+    data: { userId: user.id },
   });
 
   try {
