@@ -15,17 +15,22 @@ export default async function SareesPage({
 }) {
   const sp = await searchParams;
 
+  const minPrice = sp.minPrice ? Number(sp.minPrice) : undefined;
+  const maxPrice = sp.maxPrice ? Number(sp.maxPrice) : undefined;
+  const sortOptions: NonNullable<ProductFilters["sort"]>[] = ["price-asc", "price-desc", "newest"];
+  const sort = sortOptions.find((s) => s === sp.sort);
+
   const filters: ProductFilters = {
     type: "SAREE",
     category: sp.category,
     fabric: sp.fabric,
     occasion: sp.occasion,
     color: sp.color,
-    minPrice: sp.minPrice ? Number(sp.minPrice) : undefined,
-    maxPrice: sp.maxPrice ? Number(sp.maxPrice) : undefined,
+    minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
+    maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined,
     inStockOnly: sp.inStock === "true",
     search: sp.search,
-    sort: sp.sort as ProductFilters["sort"],
+    sort,
   };
 
   const products = await getProducts(filters);

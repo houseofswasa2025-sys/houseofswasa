@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/constants";
+import type { OrderStatus } from "@/generated/prisma/client";
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
@@ -11,19 +12,20 @@ const STATUS_STYLES: Record<string, string> = {
   CANCELLED: "bg-red-100 text-red-700",
 };
 
+const statuses: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
+
 export default async function AdminOrdersPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
   const { status } = await searchParams;
+  const validStatus = statuses.find((s) => s === status);
   const orders = await prisma.order.findMany({
-    where: status ? { status: status as never } : undefined,
+    where: validStatus ? { status: validStatus } : undefined,
     orderBy: { createdAt: "desc" },
     include: { items: true },
   });
-
-  const statuses = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
 
   return (
     <div>
