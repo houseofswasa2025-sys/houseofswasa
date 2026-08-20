@@ -70,8 +70,7 @@ async function supportFooter() {
 
   return `
     <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #f7f1e6;font-size:13px;color:#8a7a6a;">
-      <strong style="color:#2a1a1f;">Please do not reply to this email</strong> — it's sent from an
-      unmonitored address. For support, contact us at
+      <strong style="color:#2a1a1f;">Please do not reply to this email.</strong> For support, contact us at
       <strong style="color:#2a1a1f;">${settings.contactEmail}</strong> or
       <strong style="color:#2a1a1f;">+${settings.whatsappNumber}</strong>.
     </p>`;
