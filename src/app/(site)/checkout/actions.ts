@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { isValidEmail } from "@/lib/validate-email";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import { getOrderNotificationRecipients } from "@/lib/site-settings";
+import { InsufficientStockError, decrementStock } from "@/lib/stock";
 
 export type CheckoutItem = {
   productId: string;
@@ -76,43 +77,48 @@ export async function placeOrder(input: CheckoutInput) {
   const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const orderNumber = `HOS${Date.now().toString().slice(-8)}`;
 
-  const order = await prisma.$transaction(async (tx) => {
-    const created = await tx.order.create({
-      data: {
-        orderNumber,
-        userId: session?.user?.id,
-        customerName: input.customerName,
-        phone: input.phone,
-        email: input.email,
-        addressLine1: input.addressLine1,
-        addressLine2: input.addressLine2 || undefined,
-        city: input.city,
-        state: input.state,
-        pincode: input.pincode,
-        notes: input.notes || undefined,
-        subtotal,
-        total: subtotal,
-        items: {
-          create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNumber,
+          userId: session?.user?.id,
+          customerName: input.customerName,
+          phone: input.phone,
+          email: input.email,
+          addressLine1: input.addressLine1,
+          addressLine2: input.addressLine2 || undefined,
+          city: input.city,
+          state: input.state,
+          pincode: input.pincode,
+          notes: input.notes || undefined,
+          subtotal,
+          total: subtotal,
+          items: {
+            create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+          },
         },
-      },
-      include: { items: true },
-    });
-
-    for (const item of orderItems) {
-      await tx.productColor.update({
-        where: { id: item.colorId },
-        data: { stock: { decrement: item.quantity } },
+        include: { items: true },
       });
-    }
 
-    return created;
-  });
+      for (const item of orderItems) {
+        await decrementStock(tx, item.colorId, item.quantity, item.productName);
+      }
+
+      return created;
+    });
+  } catch (error) {
+    if (error instanceof InsufficientStockError) {
+      return { error: `Sorry, ${error.message} Please update your cart.` };
+    }
+    throw error;
+  }
 
   if (session?.user?.id && !session.user.email) {
     await prisma.user
       .update({ where: { id: session.user.id }, data: { email: input.email } })
-      .catch(() => {}); // another account may already own this email — order still succeeds either way
+      .catch(() => {}); // another account may already own this email, order still succeeds either way
   }
 
   after(async () => {

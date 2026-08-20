@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/lib/email";
+import { InsufficientStockError, decrementStock } from "@/lib/stock";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 async function findColorRow(productId: string, colorName: string | null) {
@@ -50,25 +51,30 @@ export async function updateOrderStatus(
       prisma.order.update({ where: { id: orderId }, data: { status } }),
     ]);
   } else if (wasCancelled && !isCancelling) {
-    // Re-reserve stock; block if there isn't enough left.
+    // Re-reserve stock; block if a color no longer exists at all.
     for (let i = 0; i < itemsWithProduct.length; i++) {
       const item = itemsWithProduct[i];
-      const colorRow = colorRows[i];
-      if (!colorRow || colorRow.stock < item.quantity) {
+      if (!colorRows[i]) {
         return {
-          error: `Cannot restore this order — "${item.productName}"${item.color ? ` (${item.color})` : ""} no longer has enough stock (${colorRow?.stock ?? 0} left, needs ${item.quantity}). Adjust stock first.`,
+          error: `Cannot restore this order: "${item.productName}"${item.color ? ` (${item.color})` : ""} no longer has a matching color. Adjust manually first.`,
         };
       }
     }
-    await prisma.$transaction([
-      ...itemsWithProduct.map((item, idx) =>
-        prisma.productColor.update({
-          where: { id: colorRows[idx]!.id },
-          data: { stock: { decrement: item.quantity } },
-        })
-      ),
-      prisma.order.update({ where: { id: orderId }, data: { status } }),
-    ]);
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < itemsWithProduct.length; i++) {
+          const item = itemsWithProduct[i];
+          const label = `${item.productName}${item.color ? ` (${item.color})` : ""}`;
+          await decrementStock(tx, colorRows[i]!.id, item.quantity, label);
+        }
+        await tx.order.update({ where: { id: orderId }, data: { status } });
+      });
+    } catch (error) {
+      if (error instanceof InsufficientStockError) {
+        return { error: `Cannot restore this order: ${error.message} Adjust stock first.` };
+      }
+      throw error;
+    }
   } else {
     await prisma.order.update({ where: { id: orderId }, data: { status } });
   }
@@ -176,10 +182,7 @@ export async function createManualOrder(input: ManualOrderInput) {
       });
 
       for (const item of orderItems) {
-        await tx.productColor.update({
-          where: { id: item.colorId },
-          data: { stock: { decrement: item.quantity } },
-        });
+        await decrementStock(tx, item.colorId, item.quantity, `${item.productName} (${item.color})`);
       }
 
       return created;
@@ -190,7 +193,8 @@ export async function createManualOrder(input: ManualOrderInput) {
         console.error("Order confirmation email failed:", err)
       );
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof InsufficientStockError) return { error: error.message };
     return { error: "Couldn't save this order. Please try again." };
   }
 
