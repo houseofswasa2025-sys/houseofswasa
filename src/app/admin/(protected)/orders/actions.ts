@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/lib/email";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 async function findColorRow(productId: string, colorName: string | null) {
@@ -70,6 +71,10 @@ export async function updateOrderStatus(
   } else {
     await prisma.order.update({ where: { id: orderId }, data: { status } });
   }
+
+  sendOrderStatusUpdateEmail({ ...order, status }).catch((err) =>
+    console.error("Order status update email failed:", err)
+  );
 
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
@@ -164,6 +169,7 @@ export async function createManualOrder(input: ManualOrderInput) {
             create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
           },
         },
+        include: { items: true },
       });
 
       for (const item of orderItems) {
@@ -176,6 +182,9 @@ export async function createManualOrder(input: ManualOrderInput) {
       return created;
     });
     orderId = order.id;
+    sendOrderConfirmationEmail(order).catch((err) =>
+      console.error("Order confirmation email failed:", err)
+    );
   } catch {
     return { error: "Couldn't save this order. Please try again." };
   }

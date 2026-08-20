@@ -169,4 +169,5 @@ model SiteSettings {
   pinterestUrl   String?
   whatsappNumber String  @default("919652282268")
   contactEmail   String  @default("swathi.pisarla98@gmail.com")
+  orderNotificationEmails String[] @default([])
 }

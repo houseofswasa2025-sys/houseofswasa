@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { isValidEmail } from "@/lib/validate-email";
+import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
+import { getOrderNotificationRecipients } from "@/lib/site-settings";
 
 export type CheckoutItem = {
   productId: string;
@@ -93,6 +95,7 @@ export async function placeOrder(input: CheckoutInput) {
           create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
         },
       },
+      include: { items: true },
     });
 
     for (const item of orderItems) {
@@ -110,6 +113,11 @@ export async function placeOrder(input: CheckoutInput) {
       .update({ where: { id: session.user.id }, data: { email: input.email } })
       .catch(() => {}); // another account may already own this email — order still succeeds either way
   }
+
+  sendOrderConfirmationEmail(order).catch((err) => console.error("Order confirmation email failed:", err));
+  getOrderNotificationRecipients()
+    .then((recipients) => sendAdminNewOrderEmail(recipients, order))
+    .catch((err) => console.error("Admin new-order email failed:", err));
 
   return { success: true, orderNumber: order.orderNumber, orderId: order.id };
 }

@@ -8,3 +8,17 @@ export async function getSiteSettings() {
   });
   return settings;
 }
+
+export async function getOrderNotificationRecipients(): Promise<string[]> {
+  const [admins, settings] = await Promise.all([
+    prisma.user.findMany({ where: { role: "ADMIN", email: { not: null } }, select: { email: true } }),
+    prisma.siteSettings.findUnique({ where: { id: 1 }, select: { orderNotificationEmails: true } }),
+  ]);
+
+  const emails = [
+    ...admins.map((a) => a.email!),
+    ...(settings?.orderNotificationEmails ?? []),
+  ];
+
+  return [...new Set(emails)];
+}

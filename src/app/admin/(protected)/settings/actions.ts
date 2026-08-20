@@ -10,6 +10,11 @@ export async function updateSiteSettings(
 ) {
   await requireAdmin();
 
+  const orderNotificationEmails = String(formData.get("orderNotificationEmails") || "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
+
   await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: {
@@ -20,6 +25,7 @@ export async function updateSiteSettings(
       pinterestUrl: String(formData.get("pinterestUrl") || "") || null,
       whatsappNumber: String(formData.get("whatsappNumber") || "919652282268"),
       contactEmail: String(formData.get("contactEmail") || "swathi.pisarla98@gmail.com"),
+      orderNotificationEmails,
     },
     create: {
       id: 1,
@@ -28,6 +34,7 @@ export async function updateSiteSettings(
       whatsappUrl: String(formData.get("whatsappUrl") || "") || null,
       youtubeUrl: String(formData.get("youtubeUrl") || "") || null,
       pinterestUrl: String(formData.get("pinterestUrl") || "") || null,
+      orderNotificationEmails,
     },
   });
 
