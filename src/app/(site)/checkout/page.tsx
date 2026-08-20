@@ -49,26 +49,30 @@ export default function CheckoutPage() {
     setPending(true);
     setError("");
 
-    const result = await placeOrder({
-      ...form,
-      items: items.map((i) => ({
-        productId: i.productId,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-        color: i.color,
-      })),
-    });
+    try {
+      const result = await placeOrder({
+        ...form,
+        items: items.map((i) => ({
+          productId: i.productId,
+          name: i.name,
+          price: i.price,
+          quantity: i.quantity,
+          color: i.color,
+        })),
+      });
 
-    setPending(false);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
 
-    if (result.error) {
-      setError(result.error);
-      return;
+      clear();
+      router.push(`/checkout/confirmation?order=${result.orderNumber}`);
+    } catch {
+      setError("Something went wrong placing your order. Please try again, or message us on WhatsApp if it keeps happening.");
+    } finally {
+      setPending(false);
     }
-
-    clear();
-    router.push(`/checkout/confirmation?order=${result.orderNumber}`);
   }
 
   return (

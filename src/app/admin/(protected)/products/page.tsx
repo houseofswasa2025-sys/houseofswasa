@@ -3,6 +3,7 @@ import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/constants";
 import { deleteProduct, toggleActive } from "./actions";
+import { AdminActionButton } from "@/components/admin/action-button";
 
 export default async function AdminProductsPage() {
   const products = await prisma.product.findMany({
@@ -68,22 +69,27 @@ export default async function AdminProductsPage() {
                     <span className={`text-sm ${totalStock <= 0 ? "text-red-600" : totalStock < 5 ? "text-amber-600" : "text-foreground/70"}`}>
                       Total stock: {totalStock}
                     </span>
-                    <form action={toggleActive.bind(null, p.id, !p.isActive)}>
-                      <button
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
-                        }`}
-                      >
-                        {p.isActive ? "Active" : "Hidden"}
-                      </button>
-                    </form>
+                    <AdminActionButton
+                      action={() => toggleActive(p.id, !p.isActive)}
+                      pendingLabel="..."
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
+                        p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
+                      }`}
+                    >
+                      {p.isActive ? "Active" : "Hidden"}
+                    </AdminActionButton>
                     <div className="flex gap-3 text-sm">
                       <Link href={`/admin/products/${p.id}/edit`} className="text-maroon hover:underline">
                         Edit
                       </Link>
-                      <form action={deleteProduct.bind(null, p.id)}>
-                        <button className="text-red-600 hover:underline">Delete</button>
-                      </form>
+                      <AdminActionButton
+                        action={() => deleteProduct(p.id)}
+                        pendingLabel="Deleting..."
+                        confirmMessage={`Delete "${p.name}"? This can't be undone.`}
+                        className="text-red-600 hover:underline disabled:opacity-60"
+                      >
+                        Delete
+                      </AdminActionButton>
                     </div>
                   </div>
                 </div>
@@ -144,24 +150,29 @@ export default async function AdminProductsPage() {
                         </p>
                       </td>
                       <td className="p-3">
-                        <form action={toggleActive.bind(null, p.id, !p.isActive)}>
-                          <button
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                              p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
-                            }`}
-                          >
-                            {p.isActive ? "Active" : "Hidden"}
-                          </button>
-                        </form>
+                        <AdminActionButton
+                          action={() => toggleActive(p.id, !p.isActive)}
+                          pendingLabel="..."
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium disabled:opacity-60 ${
+                            p.isActive ? "bg-green-100 text-green-700" : "bg-foreground/10 text-foreground/50"
+                          }`}
+                        >
+                          {p.isActive ? "Active" : "Hidden"}
+                        </AdminActionButton>
                       </td>
                       <td className="p-3">
                         <div className="flex gap-3">
                           <Link href={`/admin/products/${p.id}/edit`} className="text-maroon hover:underline">
                             Edit
                           </Link>
-                          <form action={deleteProduct.bind(null, p.id)}>
-                            <button className="text-red-600 hover:underline">Delete</button>
-                          </form>
+                          <AdminActionButton
+                            action={() => deleteProduct(p.id)}
+                            pendingLabel="Deleting..."
+                            confirmMessage={`Delete "${p.name}"? This can't be undone.`}
+                            className="text-red-600 hover:underline disabled:opacity-60"
+                          >
+                            Delete
+                          </AdminActionButton>
                         </div>
                       </td>
                     </tr>

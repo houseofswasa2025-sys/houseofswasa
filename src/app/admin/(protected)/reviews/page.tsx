@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { setReviewApproval, deleteReview } from "./actions";
+import { AdminActionButton } from "@/components/admin/action-button";
 
 export default async function AdminReviewsPage() {
   const reviews = await prisma.review.findMany({ orderBy: { createdAt: "desc" } });
@@ -16,20 +17,23 @@ export default async function AdminReviewsPage() {
             </div>
             <p className="mt-1 text-sm text-foreground/70">{r.text}</p>
             <div className="mt-3 flex gap-2">
-              <form action={setReviewApproval.bind(null, r.id, !r.approved)}>
-                <button
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    r.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {r.approved ? "Approved" : "Pending — Approve"}
-                </button>
-              </form>
-              <form action={deleteReview.bind(null, r.id)}>
-                <button className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600">
-                  Delete
-                </button>
-              </form>
+              <AdminActionButton
+                action={() => setReviewApproval(r.id, !r.approved)}
+                pendingLabel="..."
+                className={`rounded-full px-3 py-1 text-xs font-medium disabled:opacity-60 ${
+                  r.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                }`}
+              >
+                {r.approved ? "Approved" : "Pending — Approve"}
+              </AdminActionButton>
+              <AdminActionButton
+                action={() => deleteReview(r.id)}
+                pendingLabel="Deleting..."
+                confirmMessage={`Delete this review from "${r.name}"? This can't be undone.`}
+                className="rounded-full border border-red-200 px-3 py-1 text-xs font-medium text-red-600 disabled:opacity-60"
+              >
+                Delete
+              </AdminActionButton>
             </div>
           </div>
         ))}
