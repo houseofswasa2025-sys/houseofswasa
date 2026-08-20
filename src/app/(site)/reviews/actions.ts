@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendPushToAdmins } from "@/lib/push";
 
 export async function submitReview(
   _prevState: { success?: boolean; error?: string } | undefined,
@@ -17,6 +19,14 @@ export async function submitReview(
 
   await prisma.review.create({
     data: { name, text, rating: Math.min(5, Math.max(1, rating)) },
+  });
+
+  after(async () => {
+    await sendPushToAdmins({
+      title: "New Review Submitted",
+      body: `${name} left a ${rating}-star review, awaiting approval.`,
+      url: "/admin/reviews",
+    }).catch((err) => console.error("New review push failed:", err));
   });
 
   revalidatePath("/reviews");

@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/lib/email";
-import { InsufficientStockError, decrementStock } from "@/lib/stock";
+import { InsufficientStockError, decrementStock, notifyLowStock } from "@/lib/stock";
 import type { OrderStatus } from "@/generated/prisma/client";
 
 async function findColorRow(productId: string, colorName: string | null) {
@@ -191,6 +191,9 @@ export async function createManualOrder(input: ManualOrderInput) {
     after(async () => {
       await sendOrderConfirmationEmail(order).catch((err) =>
         console.error("Order confirmation email failed:", err)
+      );
+      await notifyLowStock(orderItems.map((i) => i.colorId)).catch((err) =>
+        console.error("Low stock push failed:", err)
       );
     });
   } catch (error) {

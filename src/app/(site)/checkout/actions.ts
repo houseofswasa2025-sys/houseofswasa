@@ -6,7 +6,9 @@ import { auth } from "@/auth";
 import { isValidEmail } from "@/lib/validate-email";
 import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import { getOrderNotificationRecipients } from "@/lib/site-settings";
-import { InsufficientStockError, decrementStock } from "@/lib/stock";
+import { InsufficientStockError, decrementStock, notifyLowStock } from "@/lib/stock";
+import { sendPushToAdmins } from "@/lib/push";
+import { formatPrice } from "@/lib/constants";
 
 export type CheckoutItem = {
   productId: string;
@@ -128,6 +130,16 @@ export async function placeOrder(input: CheckoutInput) {
     const recipients = await getOrderNotificationRecipients().catch(() => []);
     await sendAdminNewOrderEmail(recipients, order).catch((err) =>
       console.error("Admin new-order email failed:", err)
+    );
+
+    await sendPushToAdmins({
+      title: "New Order Received",
+      body: `${input.customerName} just placed order ${order.orderNumber} (${formatPrice(subtotal)}).`,
+      url: `/admin/orders/${order.id}`,
+    }).catch((err) => console.error("New order push failed:", err));
+
+    await notifyLowStock(orderItems.map((i) => i.colorId)).catch((err) =>
+      console.error("Low stock push failed:", err)
     );
   });
 

@@ -41,3 +41,29 @@ export async function updateSiteSettings(
   revalidatePath("/", "layout");
   return { success: true };
 }
+
+export async function saveSubscription(sub: { endpoint: string; keys: { p256dh: string; auth: string } }) {
+  const session = await requireAdmin();
+
+  await prisma.pushSubscription.upsert({
+    where: { endpoint: sub.endpoint },
+    update: { userId: session.user.id, p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+    create: {
+      userId: session.user.id,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
+    },
+  });
+}
+
+export async function deleteSubscription(endpoint: string) {
+  const session = await requireAdmin();
+  await prisma.pushSubscription.deleteMany({ where: { endpoint, userId: session.user.id } });
+}
+
+export async function isSubscribed(endpoint: string) {
+  const session = await requireAdmin();
+  const sub = await prisma.pushSubscription.findFirst({ where: { endpoint, userId: session.user.id } });
+  return !!sub;
+}
