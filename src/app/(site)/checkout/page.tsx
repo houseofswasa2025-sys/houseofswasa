@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useCartStore } from "@/lib/cart-store";
 import { formatPrice, whatsappLink, CONTACT } from "@/lib/constants";
 import { placeOrder } from "./actions";
+import { EmailInput } from "@/components/email-input";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -108,11 +109,11 @@ export default function CheckoutPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground/70">Email (optional)</label>
-            <input
-              type="email"
+            <label className="mb-1 block text-sm font-medium text-foreground/70">Email</label>
+            <EmailInput
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(email) => setForm({ ...form, email })}
+              required
               className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
             />
           </div>

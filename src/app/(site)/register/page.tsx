@@ -1,14 +1,16 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { registerAction } from "./actions";
+import { EmailInput } from "@/components/email-input";
 
 export default function RegisterPage() {
   const [state, formAction, pending] = useActionState(registerAction, undefined);
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/account";
+  const [email, setEmail] = useState("");
 
   return (
     <div className="mx-auto flex max-w-sm flex-col px-4 py-16">
@@ -33,10 +35,12 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-foreground/70">Email (optional)</label>
-          <input
+          <label className="mb-1 block text-sm font-medium text-foreground/70">Email</label>
+          <EmailInput
             name="email"
-            type="email"
+            value={email}
+            onChange={setEmail}
+            required
             className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
           />
         </div>

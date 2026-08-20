@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { isValidEmail } from "@/lib/validate-email";
 
 export type CheckoutItem = {
   productId: string;
@@ -14,7 +15,7 @@ export type CheckoutItem = {
 export type CheckoutInput = {
   customerName: string;
   phone: string;
-  email?: string;
+  email: string;
   addressLine1: string;
   addressLine2?: string;
   city: string;
@@ -27,6 +28,9 @@ export type CheckoutInput = {
 export async function placeOrder(input: CheckoutInput) {
   if (input.items.length === 0) {
     return { error: "Your cart is empty." };
+  }
+  if (!isValidEmail(input.email)) {
+    return { error: "Please enter a valid email address." };
   }
 
   for (const item of input.items) {
@@ -76,7 +80,7 @@ export async function placeOrder(input: CheckoutInput) {
         userId: session?.user?.id,
         customerName: input.customerName,
         phone: input.phone,
-        email: input.email || undefined,
+        email: input.email,
         addressLine1: input.addressLine1,
         addressLine2: input.addressLine2 || undefined,
         city: input.city,
@@ -100,6 +104,12 @@ export async function placeOrder(input: CheckoutInput) {
 
     return created;
   });
+
+  if (session?.user?.id && !session.user.email) {
+    await prisma.user
+      .update({ where: { id: session.user.id }, data: { email: input.email } })
+      .catch(() => {}); // another account may already own this email — order still succeeds either way
+  }
 
   return { success: true, orderNumber: order.orderNumber, orderId: order.id };
 }

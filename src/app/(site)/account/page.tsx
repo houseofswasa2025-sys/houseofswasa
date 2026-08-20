@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { AddEmailForm } from "./add-email-form";
 
 export default async function AccountPage() {
   const session = await auth();
@@ -19,10 +20,13 @@ export default async function AccountPage() {
         <p className="font-medium text-foreground">{user?.name}</p>
         <p className="mt-3 text-sm text-foreground/60">Phone</p>
         <p className="font-medium text-foreground">{user?.phone}</p>
-        {user?.email && (
+        <p className="mt-3 text-sm text-foreground/60">Email</p>
+        {user?.email ? (
+          <p className="font-medium text-foreground">{user.email}</p>
+        ) : (
           <>
-            <p className="mt-3 text-sm text-foreground/60">Email</p>
-            <p className="font-medium text-foreground">{user.email}</p>
+            <p className="text-sm text-foreground/50">Add your email so we can keep you updated on orders.</p>
+            <AddEmailForm />
           </>
         )}
       </div>
