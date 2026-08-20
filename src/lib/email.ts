@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { formatPrice } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import type { Order, OrderItem, OrderStatus } from "@/generated/prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -64,6 +65,18 @@ function itemsTable(items: OrderItem[]) {
   return `<table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">${rows}</table>`;
 }
 
+async function supportFooter() {
+  const settings = await getSiteSettings();
+
+  return `
+    <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #f7f1e6;font-size:13px;color:#8a7a6a;">
+      <strong style="color:#2a1a1f;">Please do not reply to this email</strong> — it's sent from an
+      unmonitored address. For support, contact us at
+      <strong style="color:#2a1a1f;">${settings.contactEmail}</strong> or
+      <strong style="color:#2a1a1f;">+${settings.whatsappNumber}</strong>.
+    </p>`;
+}
+
 export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   if (!order.email) return;
 
@@ -82,7 +95,8 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
     </p>
     <p style="margin:0;font-size:14px;color:#8a7a6a;">
       We'll confirm your order and delivery timeline shortly. Payment is Cash on Delivery unless otherwise arranged via WhatsApp.
-    </p>`
+    </p>
+    ${await supportFooter()}`
   );
 
   await resend.emails.send({
@@ -107,7 +121,8 @@ export async function sendOrderStatusUpdateEmail(order: OrderWithItems) {
       <strong style="color:#7a1f2f;">${label}</strong>.
     </p>
     ${itemsTable(order.items)}
-    <p style="text-align:right;font-size:16px;font-weight:600;margin:16px 0 0;">Total: ${formatPrice(order.total)}</p>`
+    <p style="text-align:right;font-size:16px;font-weight:600;margin:16px 0 24px;">Total: ${formatPrice(order.total)}</p>
+    ${await supportFooter()}`
   );
 
   await resend.emails.send({
