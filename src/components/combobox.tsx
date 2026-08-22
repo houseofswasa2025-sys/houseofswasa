@@ -25,7 +25,11 @@ export function Combobox({ name, value, onChange, options, required, placeholder
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  const filtered = options.filter((o) => o.toLowerCase().includes(value.toLowerCase()));
+  // If the current value doesn't match any preset (a custom value someone
+  // typed before, or the field is empty), fall back to the full list rather
+  // than showing nothing - the dropdown should always have something to show.
+  const matches = options.filter((o) => o.toLowerCase().includes(value.toLowerCase()));
+  const suggestions = matches.length > 0 ? matches : options;
 
   return (
     <div className="relative" ref={ref}>
@@ -40,11 +44,20 @@ export function Combobox({ name, value, onChange, options, required, placeholder
         }}
         onFocus={() => setOpen(true)}
         autoComplete="off"
-        className={className}
+        className={`${className ?? ""} pr-9`}
       />
-      {open && filtered.length > 0 && (
+      <svg
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50"
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+      >
+        <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      {open && (
         <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-gold-light bg-white shadow-lg">
-          {filtered.map((opt) => (
+          {suggestions.map((opt) => (
             <li key={opt}>
               <button
                 type="button"
