@@ -158,34 +158,44 @@ export function ManualOrderForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="rounded-xl border border-gold-light/60 bg-white p-4">
         <h2 className="mb-3 font-semibold text-foreground">Items</h2>
-        <div className="flex flex-wrap gap-2">
-          <select
-            value={selectedProductId}
-            onChange={(e) => onSelectProduct(e.target.value)}
-            className="flex-1 rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-          >
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {formatPrice(p.salePrice ?? p.price)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedColorId}
-            onChange={(e) => setSelectedColorId(e.target.value)}
-            className="rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-          >
-            {selectedProduct?.colors.map((c) => (
-              <option key={c.id} value={c.id} disabled={c.stock <= 0}>
-                {c.name} {c.stock <= 0 ? "(out of stock)" : `(${c.stock} left)`}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <select
+              value={selectedProductId}
+              onChange={(e) => onSelectProduct(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-gold-light bg-white px-3 py-2 pr-9 text-sm outline-none focus:border-maroon"
+            >
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} — {formatPrice(p.salePrice ?? p.price)}
+                </option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="relative sm:w-48">
+            <select
+              value={selectedColorId}
+              onChange={(e) => setSelectedColorId(e.target.value)}
+              className="w-full appearance-none rounded-lg border border-gold-light bg-white px-3 py-2 pr-9 text-sm outline-none focus:border-maroon"
+            >
+              {selectedProduct?.colors.map((c) => (
+                <option key={c.id} value={c.id} disabled={c.stock <= 0}>
+                  {c.name} {c.stock <= 0 ? "(out of stock)" : `(${c.stock} left)`}
+                </option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           <button
             type="button"
             onClick={() => addItem(selectedProductId, selectedColorId)}
             disabled={!selectedColorId}
-            className="rounded-lg bg-maroon px-4 py-2 text-sm font-semibold text-white transition-transform active:scale-95 disabled:opacity-50"
+            className="rounded-lg bg-maroon px-4 py-2.5 text-sm font-semibold text-white transition-transform active:scale-95 disabled:opacity-50 sm:py-2"
           >
             Add
           </button>
@@ -196,13 +206,13 @@ export function ManualOrderForm({
             {items.map((item) => {
               const key = `${item.productId}-${item.colorId}`;
               return (
-                <div key={key} className="flex items-center justify-between gap-2 rounded-lg bg-ivory px-3 py-2 text-sm">
-                  <span className="flex-1">{item.label}</span>
-                  <div className="flex items-center gap-1.5">
+                <div key={key} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-ivory px-3 py-2 text-sm">
+                  <span className="flex-1 basis-full sm:basis-auto">{item.label}</span>
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => updateQuantity(key, item.quantity - 1)}
-                      className="h-6 w-6 rounded-full border border-gold-light text-xs"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-gold-light text-sm active:scale-90"
                     >
                       −
                     </button>
@@ -210,7 +220,7 @@ export function ManualOrderForm({
                     <button
                       type="button"
                       onClick={() => updateQuantity(key, item.quantity + 1)}
-                      className="h-6 w-6 rounded-full border border-gold-light text-xs disabled:opacity-40"
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-gold-light text-sm disabled:opacity-40 active:scale-90"
                       disabled={item.quantity >= item.maxStock}
                     >
                       +

@@ -32,7 +32,7 @@ export function Combobox({ name, value, onChange, options, required, placeholder
   const suggestions = matches.length > 0 ? matches : options;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative w-full" ref={ref}>
       <input
         name={name}
         required={required}
@@ -44,7 +44,7 @@ export function Combobox({ name, value, onChange, options, required, placeholder
         }}
         onFocus={() => setOpen(true)}
         autoComplete="off"
-        className={`${className ?? ""} pr-9`}
+        className={`w-full pr-9 ${className ?? ""}`}
       />
       <svg
         className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50"

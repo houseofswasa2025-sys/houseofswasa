@@ -314,26 +314,15 @@ export function ProductForm({ product, action }: Props) {
 
   return (
     <form action={formAction} className="max-w-3xl space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground/70">Name</label>
-          <input
-            name="name"
-            required
-            defaultValue={product?.name}
-            className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground/70">
-            Slug (leave blank to auto-generate)
-          </label>
-          <input
-            name="slug"
-            defaultValue={product?.slug}
-            className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-          />
-        </div>
+      <input type="hidden" name="slug" value={product?.slug ?? ""} />
+      <div>
+        <label className="mb-1 block text-sm font-medium text-foreground/70">Name</label>
+        <input
+          name="name"
+          required
+          defaultValue={product?.name}
+          className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
+        />
       </div>
 
       <div>
@@ -393,7 +382,7 @@ export function ProductForm({ product, action }: Props) {
         </div>
       </div>
 
-      <div>
+      <div className="max-w-xs">
         <label className="mb-1 block text-sm font-medium text-foreground/70">Fabric</label>
         <Combobox
           name="fabric"
@@ -401,7 +390,7 @@ export function ProductForm({ product, action }: Props) {
           required
           value={fabric}
           onChange={setFabric}
-          className="w-full max-w-xs rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
+          className="rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
         />
       </div>
 
