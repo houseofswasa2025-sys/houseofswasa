@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { CATEGORIES, FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
+import { Combobox } from "@/components/combobox";
 import type { Product, ProductColor } from "@/generated/prisma/client";
 import type { ProductFormState } from "./actions";
 
@@ -136,12 +137,12 @@ function ColorRowEditor({
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1">
           <label className="mb-1 block text-xs font-medium text-foreground/60">Color name</label>
-          <input
+          <Combobox
             name="colorNames"
-            list="color-name-options"
+            options={COLORS}
             required
             value={row.name}
-            onChange={(e) => onChange({ ...row, name: e.target.value })}
+            onChange={(name) => onChange({ ...row, name })}
             className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
             placeholder="e.g. Maroon"
           />
@@ -249,6 +250,7 @@ export function ProductForm({ product, action }: Props) {
         }))
       : [newRow()]
   );
+  const [fabric, setFabric] = useState(product?.fabric ?? "");
   const [state, formAction, pending] = useActionState(action, undefined);
 
   function updateRow(index: number, next: ColorRowState) {
@@ -261,12 +263,6 @@ export function ProductForm({ product, action }: Props) {
 
   return (
     <form action={formAction} className="max-w-3xl space-y-6">
-      <datalist id="color-name-options">
-        {COLORS.map((c) => (
-          <option key={c} value={c} />
-        ))}
-      </datalist>
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground/70">Name</label>
@@ -303,14 +299,25 @@ export function ProductForm({ product, action }: Props) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground/70">Type</label>
-          <select
-            name="type"
-            defaultValue={product?.type ?? "SAREE"}
-            className="w-full rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
-          >
-            <option value="SAREE">Saree</option>
-            <option value="DRESS_MATERIAL">Dress Material</option>
-          </select>
+          <div className="relative">
+            <select
+              name="type"
+              defaultValue={product?.type ?? "SAREE"}
+              className="w-full appearance-none rounded-lg border border-gold-light bg-white px-3 py-2 pr-9 text-sm outline-none focus:border-maroon"
+            >
+              <option value="SAREE">Saree</option>
+              <option value="DRESS_MATERIAL">Dress Material</option>
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50"
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+            >
+              <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-foreground/70">Price (₹)</label>
@@ -337,18 +344,14 @@ export function ProductForm({ product, action }: Props) {
 
       <div>
         <label className="mb-1 block text-sm font-medium text-foreground/70">Fabric</label>
-        <input
+        <Combobox
           name="fabric"
-          list="fabric-options"
+          options={FABRICS}
           required
-          defaultValue={product?.fabric}
+          value={fabric}
+          onChange={setFabric}
           className="w-full max-w-xs rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
         />
-        <datalist id="fabric-options">
-          {FABRICS.map((f) => (
-            <option key={f} value={f} />
-          ))}
-        </datalist>
       </div>
 
       <div>
