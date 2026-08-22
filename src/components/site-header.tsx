@@ -20,6 +20,8 @@ const NAV_LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
+const ABOUT_INDEX = NAV_LINKS.findIndex((l) => l.href === "/about");
+
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -44,7 +46,7 @@ export function SiteHeader() {
         </Link>
 
         <nav className="hidden items-center gap-5 lg:flex">
-          {NAV_LINKS.map((link) => (
+          {NAV_LINKS.slice(0, ABOUT_INDEX).map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -85,6 +87,17 @@ export function SiteHeader() {
               )}
             </AnimatePresence>
           </div>
+          {NAV_LINKS.slice(ABOUT_INDEX).map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`text-sm font-medium transition-colors hover:text-maroon ${
+                pathname === link.href ? "text-maroon" : "text-foreground/80"
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex items-center gap-4">
