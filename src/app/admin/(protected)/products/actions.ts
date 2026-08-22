@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put, del } from "@vercel/blob";
 import sharp from "sharp";
+import convertHeic from "heic-convert";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
@@ -19,8 +20,21 @@ function parseList(formData: FormData, key: string): string[] {
 
 class ImageUploadError extends Error {}
 
+const HEIC_NAME_RE = /\.hei[cf]$/i;
+
 async function compressImage(file: File): Promise<Buffer> {
-  const buffer = Buffer.from(await file.arrayBuffer());
+  let buffer = Buffer.from(await file.arrayBuffer());
+
+  // iPhones default to HEIC, which the sharp build here can't decode (no
+  // libheif codec in the prebuilt binary, only the royalty-free AVIF
+  // sibling format). Transcode to JPEG first so the rest of the pipeline
+  // never needs to know the source format.
+  const isHeic = /^image\/hei[cf]/i.test(file.type) || HEIC_NAME_RE.test(file.name);
+  if (isHeic) {
+    const jpeg = await convertHeic({ buffer, format: "JPEG", quality: 0.92 });
+    buffer = Buffer.from(jpeg);
+  }
+
   return sharp(buffer)
     .rotate()
     .resize({ width: 1600, withoutEnlargement: true })
@@ -32,11 +46,11 @@ async function uploadFiles(files: File[]): Promise<string[]> {
   if (files.length === 0) return [];
 
   for (const file of files) {
-    if (!file.type.startsWith("image/")) {
+    if (!file.type.startsWith("image/") && !HEIC_NAME_RE.test(file.name)) {
       throw new ImageUploadError(`"${file.name}" isn't an image file.`);
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      throw new ImageUploadError(`"${file.name}" is larger than 8MB — please compress it and try again.`);
+      throw new ImageUploadError(`"${file.name}" is larger than 8MB, please compress it and try again.`);
     }
   }
 
@@ -54,7 +68,7 @@ async function uploadFiles(files: File[]): Promise<string[]> {
     }
   } catch {
     await Promise.all(uploaded.map((url) => del(url).catch(() => {})));
-    throw new ImageUploadError(`Couldn't upload one of the images — please check your connection and try again.`);
+    throw new ImageUploadError(`Couldn't upload one of the images: the file may be corrupted or in an unsupported format. Please try a JPEG, PNG, WebP, or HEIC photo.`);
   }
 
   return uploaded;

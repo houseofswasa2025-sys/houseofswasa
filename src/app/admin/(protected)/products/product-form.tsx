@@ -7,6 +7,7 @@ import type { Product, ProductColor } from "@/generated/prisma/client";
 import type { ProductFormState } from "./actions";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const HEIC_NAME_RE = /\.hei[cf]$/i;
 
 type ProductWithColors = Product & { colors: ProductColor[] };
 
@@ -93,12 +94,12 @@ function ColorRowEditor({
 
     const accepted: StagedFile[] = [];
     for (const file of picked) {
-      if (!file.type.startsWith("image/")) {
-        setFileError(`"${file.name}" isn't an image file — skipped.`);
+      if (!file.type.startsWith("image/") && !HEIC_NAME_RE.test(file.name)) {
+        setFileError(`"${file.name}" isn't an image file, skipped.`);
         continue;
       }
       if (file.size > MAX_IMAGE_BYTES) {
-        setFileError(`"${file.name}" is larger than 8MB — skipped.`);
+        setFileError(`"${file.name}" is larger than 8MB, skipped.`);
         continue;
       }
       accepted.push({ file, id: `${file.name}-${file.size}-${Date.now()}-${Math.random()}`, previewUrl: URL.createObjectURL(file) });
