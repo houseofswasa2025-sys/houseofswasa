@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useCartStore } from "@/lib/cart-store";
@@ -25,7 +25,19 @@ const ABOUT_INDEX = NAV_LINKS.findIndex((l) => l.href === "/about");
 export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const collectionsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (!categoriesOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (collectionsRef.current && !collectionsRef.current.contains(e.target as Node)) {
+        setCategoriesOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [categoriesOpen]);
   const totalItems = useCartStore((s) => s.totalItems());
 
   return (
@@ -58,12 +70,26 @@ export function SiteHeader() {
             </Link>
           ))}
           <div
+            ref={collectionsRef}
             className="relative"
             onMouseEnter={() => setCategoriesOpen(true)}
             onMouseLeave={() => setCategoriesOpen(false)}
           >
-            <button className="text-sm font-medium text-foreground/80 hover:text-maroon">
-              Collections ▾
+            <button
+              onClick={() => setCategoriesOpen((v) => !v)}
+              className="flex items-center gap-1 text-sm font-medium text-foreground/80 hover:text-maroon"
+            >
+              Collections
+              <motion.svg
+                animate={{ rotate: categoriesOpen ? 180 : 0 }}
+                transition={{ duration: 0.18 }}
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+              >
+                <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </motion.svg>
             </button>
             <AnimatePresence>
               {categoriesOpen && (
@@ -72,17 +98,23 @@ export function SiteHeader() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.97 }}
                   transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute right-0 top-full grid w-64 origin-top-right grid-cols-1 gap-1 rounded-lg border border-gold-light bg-white p-3 shadow-lg"
+                  className="absolute right-0 top-full mt-2 w-80 origin-top-right overflow-hidden rounded-xl border border-gold-light bg-white shadow-xl"
                 >
-                  {CATEGORIES.map((cat) => (
-                    <Link
-                      key={cat}
-                      href={`/categories/${toSlug(cat)}`}
-                      className="rounded px-2 py-1.5 text-sm text-foreground/80 transition-colors hover:bg-ivory hover:text-maroon"
-                    >
-                      {cat}
-                    </Link>
-                  ))}
+                  <p className="border-b border-gold-light/60 bg-ivory px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-maroon">
+                    Shop by Category
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5 p-3">
+                    {CATEGORIES.map((cat) => (
+                      <Link
+                        key={cat}
+                        href={`/categories/${toSlug(cat)}`}
+                        onClick={() => setCategoriesOpen(false)}
+                        className="rounded-full px-3 py-1.5 text-center text-xs font-medium text-foreground/80 transition-colors hover:bg-maroon hover:text-white"
+                      >
+                        {cat}
+                      </Link>
+                    ))}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

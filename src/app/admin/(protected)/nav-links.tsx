@@ -9,21 +9,21 @@ const LINKS = [
   { href: "/admin/products", label: "Products" },
   { href: "/admin/whatsapp", label: "WhatsApp Interest" },
   { href: "/admin/reviews", label: "Reviews" },
-  { href: "/admin/settings", label: "Social Media" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export function AdminNavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 overflow-x-auto md:flex-col">
+    <nav className="flex flex-col gap-1">
       {LINKS.map((link) => {
         const active = link.href === "/admin" ? pathname === "/admin" : pathname.startsWith(link.href);
         return (
           <Link
             key={link.href}
             href={link.href}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-lg px-3 py-2.5 text-sm font-medium transition-colors md:py-2 ${
               active ? "bg-maroon text-white" : "text-foreground/70 hover:bg-ivory hover:text-maroon"
             }`}
           >
