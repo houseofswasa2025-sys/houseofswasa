@@ -107,3 +107,21 @@ prefer them over `.env` and local dev would hit production data.
   interactions — ref-based clicks on this app have intermittently failed
   to register (especially on animated/motion-wrapped buttons) without any
   visible error, while the same click by pixel coordinate works.
+- Server Components can't pass a plain closure as a prop into a Client
+  Component (only an actual Server Action reference, or `.bind()` on one,
+  survives that boundary) — this compiles and passes `npm run build` fine
+  since it's a runtime-only check, but crashes the page in production. Bit
+  us once in the admin Products/Reviews pages (`AdminActionButton`); the
+  fix was switching from `action={() => fn(id)}` to
+  `action={fn.bind(null, id)}`.
+- The `sharp` build here only decodes AVIF from the HEIF family, not
+  actual iPhone HEIC photos (no libheif codec in the prebuilt binary) —
+  uploading a HEIC product photo used to crash image processing with a
+  generic error. `src/app/admin/(protected)/products/actions.ts`
+  transcodes HEIC/HEIF to JPEG via `heic-convert` before handing off to
+  sharp, so this should no longer come up, but keep it in mind if a
+  future image-processing change reintroduces the gap.
+- Vercel's runtime log retention on this project's plan is very short
+  (a couple of minutes in practice, not the days `vercel logs --since`
+  implies) — don't rely on it to retroactively diagnose an incident
+  reported after the fact. Reproduce live while tailing logs instead.
