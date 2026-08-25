@@ -1,6 +1,6 @@
 export const SITE_NAME = "House of Swasa";
 export const SITE_TAGLINE = "Your Style..Your Story";
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://house-of-swasa-xi.vercel.app";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.houseofswasa.com";
 
 export const CONTACT = {
   whatsappNumber: "919652282268",
