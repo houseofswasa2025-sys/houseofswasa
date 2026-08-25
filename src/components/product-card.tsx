@@ -124,7 +124,9 @@ export function ProductCard({
             productId={id}
             productName={name}
             page="product-card"
-            href={whatsappLink(`Hi! I'm interested in "${name}" (${active?.name ?? ""}, ${formatPrice(displayPrice)}). Is it available?`)}
+            href={whatsappLink(
+              `Hi! I'm interested in "${name}" (${active?.name ?? ""}, ${formatPrice(displayPrice)}). Is it available? Link: ${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/products/${slug}`
+            )}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-1.5 block rounded-full border border-[#25D366] px-3 py-1.5 text-center text-xs font-semibold text-[#128C4A] transition-transform duration-150 hover:bg-[#25D366]/10 active:scale-95"

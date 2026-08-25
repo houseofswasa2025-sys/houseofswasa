@@ -9,6 +9,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
 import { requireAdmin } from "@/lib/require-admin";
+import { registerPresets } from "@/lib/presets";
 
 export type ProductFormState = { error?: string } | undefined;
 
@@ -134,7 +135,7 @@ function buildProductData(formData: FormData) {
 
 function friendlySaveError(error: unknown): string {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-    return "That slug or color name is already used — please make it unique.";
+    return "That slug or color name is already used, please make it unique.";
   }
   return "Couldn't save the product. Please try again.";
 }
@@ -150,6 +151,7 @@ export async function createProduct(
   if (validationError) return { error: validationError };
 
   const data = buildProductData(formData);
+  if (!data.fabric.trim()) return { error: "Please select or add a fabric." };
 
   let uploadedByRow: string[][];
   try {
@@ -179,6 +181,13 @@ export async function createProduct(
     return { error: friendlySaveError(error) };
   }
 
+  await registerPresets({
+    categories: data.categories,
+    occasions: data.occasions,
+    fabric: data.fabric,
+    colors: rows.map((r) => r.name),
+  });
+
   revalidatePath("/admin/products");
   revalidatePath("/sarees");
   redirect("/admin/products");
@@ -202,6 +211,7 @@ export async function updateProduct(
   if (validationError) return { error: validationError };
 
   const data = buildProductData(formData);
+  if (!data.fabric.trim()) return { error: "Please select or add a fabric." };
 
   let uploadedByRow: string[][];
   try {
@@ -241,6 +251,13 @@ export async function updateProduct(
     await Promise.all(allUploaded.map((url) => del(url).catch(() => {})));
     return { error: friendlySaveError(error) };
   }
+
+  await registerPresets({
+    categories: data.categories,
+    occasions: data.occasions,
+    fabric: data.fabric,
+    colors: rows.map((r) => r.name),
+  });
 
   // Only remove now-unused Blob images after the DB update has actually succeeded.
   const keptImages = new Set(rows.flatMap((r, i) => [...r.existingImages, ...uploadedByRow[i]]));

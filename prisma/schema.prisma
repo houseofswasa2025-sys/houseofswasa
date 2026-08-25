@@ -36,6 +36,21 @@ enum OrderSource {
   WHATSAPP
 }
 
+enum PresetTagType {
+  CATEGORY
+  OCCASION
+  FABRIC
+  COLOR
+}
+
+model PresetTag {
+  id   String        @id @default(cuid())
+  type PresetTagType
+  name String
+
+  @@unique([type, name])
+}
+
 model User {
   id                String             @id @default(cuid())
   name              String

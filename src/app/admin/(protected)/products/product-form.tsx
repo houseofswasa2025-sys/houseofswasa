@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { CATEGORIES, FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
 import { Combobox } from "@/components/combobox";
+import { ChipGroup } from "@/components/chip-group";
 import type { Product, ProductColor } from "@/generated/prisma/client";
 import type { ProductFormState } from "./actions";
 
@@ -48,40 +48,18 @@ async function compressForUpload(file: File): Promise<File> {
 
 type ProductWithColors = Product & { colors: ProductColor[] };
 
-type Props = {
-  product?: ProductWithColors;
-  action: (prevState: ProductFormState, formData: FormData) => Promise<ProductFormState>;
+type Presets = {
+  categories: string[];
+  occasions: string[];
+  fabrics: string[];
+  colors: string[];
 };
 
-function CheckboxGroup({
-  name,
-  options,
-  defaultValues,
-}: {
-  name: string;
-  options: readonly string[];
-  defaultValues: string[];
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => (
-        <label
-          key={opt}
-          className="flex items-center gap-1.5 rounded-full border border-gold-light px-3 py-1 text-xs has-[:checked]:border-maroon has-[:checked]:bg-maroon has-[:checked]:text-white"
-        >
-          <input
-            type="checkbox"
-            name={name}
-            value={opt}
-            defaultChecked={defaultValues.includes(opt)}
-            className="hidden"
-          />
-          {opt}
-        </label>
-      ))}
-    </div>
-  );
-}
+type Props = {
+  product?: ProductWithColors;
+  presets: Presets;
+  action: (prevState: ProductFormState, formData: FormData) => Promise<ProductFormState>;
+};
 
 type StagedFile = { file: File; id: string; previewUrl: string };
 
@@ -94,9 +72,15 @@ type ColorRowState = {
   staged: StagedFile[];
 };
 
+// A plain incrementing counter (not Date.now()/Math.random()) so the key
+// generated during the server render matches the one generated again during
+// client hydration - both start this module fresh and call newRow() the
+// same number of times in the same order for the initial render.
+let rowCounter = 0;
 function newRow(): ColorRowState {
+  rowCounter += 1;
   return {
-    key: `new-${Date.now()}-${Math.random()}`,
+    key: `new-${rowCounter}`,
     colorId: null,
     name: "",
     stock: 0,
@@ -110,11 +94,13 @@ function ColorRowEditor({
   index,
   onChange,
   onRemove,
+  colorPresets,
 }: {
   row: ColorRowState;
   index: number;
   onChange: (row: ColorRowState) => void;
   onRemove: () => void;
+  colorPresets: string[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
@@ -188,7 +174,7 @@ function ColorRowEditor({
           <label className="mb-1 block text-xs font-medium text-foreground/60">Color name</label>
           <Combobox
             name="colorNames"
-            options={COLORS}
+            options={colorPresets}
             required
             value={row.name}
             onChange={(name) => onChange({ ...row, name })}
@@ -288,7 +274,7 @@ function ColorRowEditor({
   );
 }
 
-export function ProductForm({ product, action }: Props) {
+export function ProductForm({ product, presets, action }: Props) {
   const [rows, setRows] = useState<ColorRowState[]>(() =>
     product && product.colors.length > 0
       ? product.colors.map((c) => ({
@@ -301,7 +287,9 @@ export function ProductForm({ product, action }: Props) {
         }))
       : [newRow()]
   );
-  const [fabric, setFabric] = useState(product?.fabric ?? "");
+  const [fabric, setFabric] = useState<string[]>(product?.fabric ? [product.fabric] : []);
+  const [categories, setCategories] = useState<string[]>(product?.categories ?? []);
+  const [occasions, setOccasions] = useState<string[]>(product?.occasions ?? []);
   const [state, formAction, pending] = useActionState(action, undefined);
 
   function updateRow(index: number, next: ColorRowState) {
@@ -382,26 +370,38 @@ export function ProductForm({ product, action }: Props) {
         </div>
       </div>
 
-      <div className="max-w-xs">
-        <label className="mb-1 block text-sm font-medium text-foreground/70">Fabric</label>
-        <Combobox
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-foreground/70">Fabric</label>
+        <ChipGroup
           name="fabric"
-          options={FABRICS}
-          required
+          presets={presets.fabrics}
           value={fabric}
           onChange={setFabric}
-          className="rounded-lg border border-gold-light px-3 py-2 text-sm outline-none focus:border-maroon"
+          multi={false}
+          addPlaceholder="Add new fabric..."
         />
       </div>
 
       <div>
         <p className="mb-1.5 text-sm font-medium text-foreground/70">Categories</p>
-        <CheckboxGroup name="categories" options={CATEGORIES} defaultValues={product?.categories ?? []} />
+        <ChipGroup
+          name="categories"
+          presets={presets.categories}
+          value={categories}
+          onChange={setCategories}
+          addPlaceholder="Add new category..."
+        />
       </div>
 
       <div>
         <p className="mb-1.5 text-sm font-medium text-foreground/70">Occasions</p>
-        <CheckboxGroup name="occasions" options={OCCASIONS} defaultValues={product?.occasions ?? []} />
+        <ChipGroup
+          name="occasions"
+          presets={presets.occasions}
+          value={occasions}
+          onChange={setOccasions}
+          addPlaceholder="Add new occasion..."
+        />
       </div>
 
       <div className="flex flex-wrap gap-4">
@@ -441,6 +441,7 @@ export function ProductForm({ product, action }: Props) {
               index={i}
               onChange={(next) => updateRow(i, next)}
               onRemove={() => removeRow(i)}
+              colorPresets={presets.colors}
             />
           ))}
         </div>
