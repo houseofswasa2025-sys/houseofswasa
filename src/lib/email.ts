@@ -1,11 +1,10 @@
 import { Resend } from "resend";
-import { formatPrice } from "@/lib/constants";
+import { formatPrice, SITE_URL } from "@/lib/constants";
 import { getSiteSettings } from "@/lib/site-settings";
 import type { Order, OrderItem, OrderStatus } from "@/generated/prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "House of Swasa <orders@houseofswasa.com>";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://house-of-swasa-xi.vercel.app";
 
 type OrderWithItems = Order & { items: OrderItem[] };
 

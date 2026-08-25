@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { formatPrice, whatsappLink } from "@/lib/constants";
+import { formatPrice, whatsappLink, SITE_URL } from "@/lib/constants";
 import { QuickAddButton } from "@/components/quick-add-button";
 import { WhatsAppTrackedLink } from "@/components/whatsapp-tracked-link";
 import type { ProductColor } from "@/lib/products";
@@ -125,7 +125,7 @@ export function ProductCard({
             productName={name}
             page="product-card"
             href={whatsappLink(
-              `Hi! I'm interested in "${name}" (${active?.name ?? ""}, ${formatPrice(displayPrice)}). Is it available? Link: ${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/products/${slug}`
+              `Hi! I'm interested in "${name}" (${active?.name ?? ""}, ${formatPrice(displayPrice)}). Is it available? Link: ${SITE_URL}/products/${slug}`
             )}
             target="_blank"
             rel="noopener noreferrer"

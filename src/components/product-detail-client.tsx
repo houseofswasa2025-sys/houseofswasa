@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatPrice, whatsappLink } from "@/lib/constants";
+import { formatPrice, whatsappLink, SITE_URL } from "@/lib/constants";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { ProductGallery } from "@/components/product-gallery";
 import { WhatsAppTrackedLink } from "@/components/whatsapp-tracked-link";
@@ -101,7 +101,7 @@ export function ProductDetailClient({ product }: { product: ProductWithColors })
           productName={product.name}
           page="product-detail"
           href={whatsappLink(
-            `Hi! I'd like to order "${product.name}"${active ? ` (${active.name})` : ""} (${formatPrice(displayPrice)}). Link: ${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/products/${product.slug}`
+            `Hi! I'd like to order "${product.name}"${active ? ` (${active.name})` : ""} (${formatPrice(displayPrice)}). Link: ${SITE_URL}/products/${product.slug}`
           )}
           target="_blank"
           rel="noopener noreferrer"
