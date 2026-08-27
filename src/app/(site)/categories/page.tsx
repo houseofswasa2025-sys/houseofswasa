@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: "Categories" };
 
 export default function CategoriesPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="font-serif text-3xl font-semibold text-maroon">Shop by Category</h1>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div className="mx-auto max-w-5xl px-4 pt-5 pb-10 sm:py-10">
+      <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Shop by Category</h1>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:grid-cols-3">
         {CATEGORIES.map((cat) => (
           <Link
             key={cat}

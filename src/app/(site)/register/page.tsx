@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col px-4 py-16">
+    <div className="mx-auto flex max-w-sm flex-col px-4 py-10 sm:py-16">
       <h1 className="mb-6 text-center font-serif text-2xl font-semibold text-maroon">Create Account</h1>
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="redirectTo" value={redirectTo} />

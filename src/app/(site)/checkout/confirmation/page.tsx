@@ -10,7 +10,7 @@ export default async function OrderConfirmationPage({
   const { order } = await searchParams;
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-16 text-center">
+    <div className="mx-auto max-w-lg px-4 py-12 text-center">
       <SuccessCheck />
       <h1 className="font-serif text-2xl font-semibold text-maroon">Order Placed!</h1>
       {order && (

@@ -11,10 +11,10 @@ export default async function ReviewsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="font-serif text-3xl font-semibold text-maroon">Customer Reviews</h1>
+    <div className="mx-auto max-w-3xl px-4 pt-6 pb-12 sm:py-12">
+      <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Customer Reviews</h1>
 
-      <div className="mt-8 space-y-4">
+      <div className="mt-5 space-y-4 sm:mt-8">
         {reviews.map((r) => (
           <div key={r.id} className="rounded-xl border border-gold-light/60 bg-white p-4">
             <p className="text-gold">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
@@ -27,7 +27,7 @@ export default async function ReviewsPage() {
         )}
       </div>
 
-      <div className="mt-10">
+      <div className="mt-7 sm:mt-10">
         <h2 className="mb-4 font-serif text-xl font-semibold text-maroon">Leave a Review</h2>
         <ReviewForm />
       </div>

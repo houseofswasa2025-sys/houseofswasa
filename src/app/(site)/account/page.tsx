@@ -12,10 +12,10 @@ export default async function AccountPage() {
   const orderCount = await prisma.order.count({ where: { userId: session.user.id } });
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
+    <div className="mx-auto max-w-lg px-4 pt-6 pb-12 sm:py-12">
       <h1 className="font-serif text-2xl font-semibold text-maroon">My Account</h1>
 
-      <div className="mt-6 rounded-xl border border-gold-light/60 bg-white p-4">
+      <div className="mt-4 rounded-xl border border-gold-light/60 bg-white p-4 sm:mt-6">
         <p className="text-sm text-foreground/60">Name</p>
         <p className="font-medium text-foreground">{user?.name}</p>
         <p className="mt-3 text-sm text-foreground/60">Phone</p>

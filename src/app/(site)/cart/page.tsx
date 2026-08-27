@@ -18,7 +18,7 @@ export default function CartPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="mx-auto max-w-xl px-4 py-16 text-center"
+        className="mx-auto max-w-xl px-4 py-12 text-center"
       >
         <p className="text-lg font-medium text-foreground/70">Your cart is empty</p>
         <Link
@@ -32,8 +32,8 @@ export default function CartPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Your Cart</h1>
+    <div className="mx-auto max-w-4xl px-4 pt-5 pb-10 sm:py-8">
+      <h1 className="mb-4 font-serif text-2xl font-semibold text-maroon sm:mb-6">Your Cart</h1>
 
       <div className="space-y-4">
         <AnimatePresence initial={false}>

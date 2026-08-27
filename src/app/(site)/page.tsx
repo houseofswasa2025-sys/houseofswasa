@@ -28,19 +28,19 @@ export default async function HomePage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-gradient-to-b from-ivory to-cream px-4 py-10 text-center sm:py-14">
+      <section className="relative overflow-hidden bg-gradient-to-b from-ivory to-cream px-4 pt-6 pb-8 text-center sm:py-14">
         <HeroLogo>
           <Image
             src="/images/logo.jpeg"
             alt="House of Swasa"
-            width={96}
-            height={96}
-            className="mx-auto rounded-full object-cover shadow-md"
+            width={80}
+            height={120}
+            className="mx-auto h-24 w-auto rounded-2xl shadow-md sm:h-28"
           />
         </HeroLogo>
         <HeroStagger>
           <HeroItem>
-            <h1 className="mt-6 font-brand text-3xl font-medium text-maroon sm:text-5xl">
+            <h1 className="mt-4 font-brand text-3xl font-medium text-maroon sm:mt-6 sm:text-5xl">
               House of Swasa
             </h1>
           </HeroItem>
@@ -48,12 +48,12 @@ export default async function HomePage() {
             <p className="mt-2 italic text-foreground/60">{SITE_TAGLINE}</p>
           </HeroItem>
           <HeroItem>
-            <p className="mx-auto mt-4 max-w-xl text-sm text-foreground/70 sm:text-base">
+            <p className="mx-auto mt-3 max-w-xl text-sm text-foreground/70 sm:text-base">
               Where tradition meets elegance. Handpicked Silk, Cotton, Banarasi, Kanjivaram and festive
               sarees for every celebration.
             </p>
           </HeroItem>
-          <HeroItem className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <HeroItem className="mt-5 flex flex-wrap items-center justify-center gap-3 sm:mt-7">
             <Link
               href="/sarees"
               className="rounded-full bg-maroon px-6 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-maroon-dark hover:shadow-lg active:scale-95"
@@ -70,9 +70,9 @@ export default async function HomePage() {
         </HeroStagger>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 pb-10 pt-2">
+      <section className="mx-auto max-w-7xl px-4 pt-4 pb-6 sm:pt-8 sm:pb-10">
         <Reveal>
-          <h2 className="mb-4 text-center font-serif text-2xl font-semibold text-maroon">
+          <h2 className="mb-3 text-center font-serif text-2xl font-semibold text-maroon sm:mb-5">
             Shop by Category
           </h2>
         </Reveal>
@@ -91,7 +91,7 @@ export default async function HomePage() {
       </section>
 
       {(newArrivals.length > 0 || bestSellers.length > 0) && (
-        <section className="mx-auto max-w-7xl px-4 py-10">
+        <section className="mx-auto max-w-7xl px-4 py-6 sm:py-12">
           <Reveal>
             <ProductTabs
               tabs={[
@@ -107,10 +107,10 @@ export default async function HomePage() {
         </section>
       )}
 
-      <section className="bg-ivory py-12">
+      <section className="bg-ivory py-8 sm:py-14">
         <div className="mx-auto max-w-5xl px-4">
           <Reveal>
-            <h2 className="mb-6 text-center font-serif text-2xl font-semibold text-maroon">Why Choose Us</h2>
+            <h2 className="mb-4 text-center font-serif text-2xl font-semibold text-maroon sm:mb-8">Why Choose Us</h2>
           </Reveal>
           <RevealGroup className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {WHY_CHOOSE_US.map((item) => (
@@ -126,9 +126,9 @@ export default async function HomePage() {
       </section>
 
       {reviews.length > 0 && (
-        <section className="mx-auto max-w-5xl px-4 py-12">
+        <section className="mx-auto max-w-5xl px-4 py-8 sm:py-14">
           <Reveal>
-            <h2 className="mb-6 text-center font-serif text-2xl font-semibold text-maroon">
+            <h2 className="mb-4 text-center font-serif text-2xl font-semibold text-maroon sm:mb-8">
               What Our Customers Say
             </h2>
           </Reveal>
@@ -152,7 +152,7 @@ export default async function HomePage() {
       )}
 
       {settings.instagramUrl && (
-        <Reveal className="mx-auto max-w-3xl px-4 pb-16 text-center">
+        <Reveal className="mx-auto max-w-3xl px-4 pb-10 text-center sm:pb-16">
           <h2 className="font-serif text-2xl font-semibold text-maroon">Follow Us on Instagram</h2>
           <p className="mt-1 text-sm text-foreground/60">
             See our latest sarees and behind-the-scenes moments.

@@ -22,10 +22,10 @@ export default async function AccountOrdersPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
+    <div className="mx-auto max-w-2xl px-4 pt-6 pb-12 sm:py-12">
       <h1 className="font-serif text-2xl font-semibold text-maroon">My Orders</h1>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-4 space-y-3 sm:mt-6">
         {orders.map((o) => (
           <div key={o.id} className="rounded-xl border border-gold-light/60 bg-white p-4">
             <div className="flex items-center justify-between">

@@ -4,9 +4,9 @@ export const metadata: Metadata = { title: "About Us" };
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="font-serif text-3xl font-semibold text-maroon">About Us</h1>
-      <div className="mt-6 space-y-4 text-sm leading-relaxed text-foreground/70 sm:text-base">
+    <div className="mx-auto max-w-3xl px-4 pt-6 pb-12 sm:py-12">
+      <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">About Us</h1>
+      <div className="mt-4 space-y-4 text-sm leading-relaxed text-foreground/70 sm:mt-6 sm:text-base">
         <p>
           Welcome to <strong>House of Swasa</strong>, where tradition meets elegance. We are a
           home-based saree boutique dedicated to bringing beautiful, high-quality sarees to women

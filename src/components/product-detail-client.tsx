@@ -14,7 +14,7 @@ export function ProductDetailClient({ product }: { product: ProductWithColors })
   const images = active?.images.length ? active.images : product.images;
 
   return (
-    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10">
       <ProductGallery key={active?.id ?? "default"} images={images} name={`${product.name} — ${active?.name ?? ""}`} />
 
       <div>

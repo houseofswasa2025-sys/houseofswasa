@@ -24,8 +24,8 @@ export function SiteFooter({ settings }: { settings: Settings }) {
   ].filter((s) => s.href);
 
   return (
-    <footer className="mt-16 border-t border-gold-light/60 bg-ivory">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="mt-10 border-t border-gold-light/60 bg-ivory sm:mt-16">
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 sm:grid-cols-2 sm:gap-8 sm:py-10 lg:grid-cols-4">
         <div>
           <h3 className="font-brand text-lg font-medium text-maroon">{SITE_NAME}</h3>
           <p className="mt-1 text-xs italic text-foreground/60">{SITE_TAGLINE}</p>

@@ -36,9 +36,9 @@ export default async function SareesPage({
   const products = await getProducts(filters);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="font-serif text-3xl font-semibold text-maroon">Sarees</h1>
+    <div className="mx-auto max-w-7xl px-4 pt-5 pb-10 sm:py-10">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Sarees</h1>
         <p className="mt-1 text-sm text-foreground/60">
           Silk, Cotton, Banarasi, Kanjivaram, Organza & more — handpicked for every occasion.
         </p>

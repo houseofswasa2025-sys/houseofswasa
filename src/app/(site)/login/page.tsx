@@ -11,7 +11,7 @@ export default function LoginPage() {
   const redirectTo = searchParams.get("redirect") || "/account";
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col px-4 py-16">
+    <div className="mx-auto flex max-w-sm flex-col px-4 py-10 sm:py-16">
       <h1 className="mb-6 text-center font-serif text-2xl font-semibold text-maroon">Log In</h1>
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="redirectTo" value={redirectTo} />

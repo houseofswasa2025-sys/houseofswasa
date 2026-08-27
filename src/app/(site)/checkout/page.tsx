@@ -32,7 +32,7 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+      <div className="mx-auto max-w-xl px-4 py-12 text-center">
         <p className="text-lg font-medium text-foreground/70">Your cart is empty</p>
         <Link
           href="/sarees"
@@ -76,8 +76,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 font-serif text-2xl font-semibold text-maroon">Checkout</h1>
+    <div className="mx-auto max-w-4xl px-4 pt-5 pb-10 sm:py-8">
+      <h1 className="mb-4 font-serif text-2xl font-semibold text-maroon sm:mb-6">Checkout</h1>
 
       {!session && (
         <p className="mb-4 rounded-lg bg-ivory p-3 text-sm text-foreground/70">
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
         <form onSubmit={handleSubmit} className="space-y-4 lg:col-span-2">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

@@ -20,7 +20,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   ).filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 pt-4 pb-10 sm:py-8">
       <nav className="mb-4 text-xs text-foreground/50">
         <Link href="/sarees" className="hover:text-maroon">Sarees</Link> / {product.name}
       </nav>
@@ -28,7 +28,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <ProductDetailClient product={product} />
 
       {related.length > 0 && (
-        <div className="mt-14">
+        <div className="mt-10 sm:mt-14">
           <h2 className="mb-4 font-serif text-xl font-semibold text-maroon">You may also like</h2>
           <ProductGrid products={related} />
         </div>

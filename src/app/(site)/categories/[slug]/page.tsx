@@ -18,9 +18,9 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
   const products = await getProducts({ category });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="font-serif text-3xl font-semibold text-maroon">{category}</h1>
-      <p className="mt-1 mb-6 text-sm text-foreground/60">{products.length} products</p>
+    <div className="mx-auto max-w-7xl px-4 pt-5 pb-10 sm:py-10">
+      <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">{category}</h1>
+      <p className="mt-1 mb-4 text-sm text-foreground/60 sm:mb-6">{products.length} products</p>
       <ProductGrid products={products} />
     </div>
   );

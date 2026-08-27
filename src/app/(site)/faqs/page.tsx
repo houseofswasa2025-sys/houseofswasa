@@ -19,9 +19,9 @@ const FAQS = [
 
 export default function FaqsPage() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12">
-      <h1 className="font-serif text-3xl font-semibold text-maroon">Frequently Asked Questions</h1>
-      <div className="mt-6 space-y-3">
+    <div className="mx-auto max-w-2xl px-4 pt-6 pb-12 sm:py-12">
+      <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Frequently Asked Questions</h1>
+      <div className="mt-4 space-y-3 sm:mt-6">
         {FAQS.map((f) => (
           <details key={f.q} className="group rounded-xl border border-gold-light/60 bg-white p-4">
             <summary className="cursor-pointer list-none text-sm font-medium text-foreground marker:content-none">
