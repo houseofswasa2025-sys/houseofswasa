@@ -1,50 +1,23 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { Combobox } from "@/components/combobox";
 import { ChipGroup } from "@/components/chip-group";
+import {
+  compressForUpload,
+  HEIC_NAME_RE,
+  isCanvasEditable,
+  isHeic,
+  MAX_IMAGE_BYTES,
+} from "@/lib/client-image";
 import type { Product, ProductColor } from "@/generated/prisma/client";
 import type { ProductFormState } from "./actions";
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-const MAX_TOTAL_UPLOAD_BYTES = 9.5 * 1024 * 1024;
-const HEIC_NAME_RE = /\.hei[cf]$/i;
-
-function isHeic(file: File) {
-  return /^image\/hei[cf]/i.test(file.type) || HEIC_NAME_RE.test(file.name);
-}
-
-// Compress in the browser before upload - a phone camera photo is often
-// 3-12MB, well over what the server will accept in one request. HEIC files
-// are skipped here since most browsers can't decode them either; they go
-// up as-is and get converted server-side instead.
-async function compressForUpload(file: File): Promise<File> {
-  if (isHeic(file) || !("createImageBitmap" in window)) return file;
-
-  try {
-    const bitmap = await createImageBitmap(file);
-    const maxWidth = 1600;
-    const scale = Math.min(1, maxWidth / bitmap.width);
-    const width = Math.round(bitmap.width * scale);
-    const height = Math.round(bitmap.height * scale);
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, width, height);
-
-    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
-    if (!blob || blob.size >= file.size) return file;
-
-    const newName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], newName, { type: "image/jpeg" });
-  } catch {
-    return file;
-  }
-}
+// Editor is loaded only when the admin taps "Edit" on a staged photo - keeps
+// react-easy-crop out of the initial admin bundle.
+const ImageCropModal = dynamic(() => import("./image-crop-modal"), { ssr: false });
 
 type ProductWithColors = Product & { colors: ProductColor[] };
 
@@ -91,13 +64,11 @@ function newRow(): ColorRowState {
 
 function ColorRowEditor({
   row,
-  index,
   onChange,
   onRemove,
   colorPresets,
 }: {
   row: ColorRowState;
-  index: number;
   onChange: (row: ColorRowState) => void;
   onRemove: () => void;
   colorPresets: string[];
@@ -105,6 +76,8 @@ function ColorRowEditor({
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
   const [compressing, setCompressing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = row.staged.find((s) => s.id === editingId) ?? null;
 
   function syncInputFiles(files: StagedFile[]) {
     const dt = new DataTransfer();
@@ -152,6 +125,17 @@ function ColorRowEditor({
     const next = row.staged.filter((s) => s.id !== id);
     syncInputFiles(next);
     onChange({ ...row, staged: next });
+  }
+
+  function replaceStaged(id: string, file: File) {
+    const next = row.staged.map((s) => {
+      if (s.id !== id) return s;
+      URL.revokeObjectURL(s.previewUrl);
+      return { file, id: s.id, previewUrl: URL.createObjectURL(file) };
+    });
+    syncInputFiles(next);
+    onChange({ ...row, staged: next });
+    setEditingId(null);
   }
 
   useEffect(() => {
@@ -231,6 +215,15 @@ function ColorRowEditor({
                 <span className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 text-[9px] font-medium text-white">
                   New
                 </span>
+                {isCanvasEditable(s.file) && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(s.id)}
+                    className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 py-0.5 text-[9px] font-medium text-white transition-transform active:scale-90"
+                  >
+                    Edit
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => removeStaged(s.id)}
@@ -241,6 +234,14 @@ function ColorRowEditor({
               </motion.div>
             ))}
           </div>
+        )}
+
+        {editing && (
+          <ImageCropModal
+            file={editing.file}
+            onCancel={() => setEditingId(null)}
+            onApply={(file) => replaceStaged(editing.id, file)}
+          />
         )}
 
         <input
@@ -438,7 +439,6 @@ export function ProductForm({ product, presets, action }: Props) {
             <ColorRowEditor
               key={row.key}
               row={row}
-              index={i}
               onChange={(next) => updateRow(i, next)}
               onRemove={() => removeRow(i)}
               colorPresets={presets.colors}

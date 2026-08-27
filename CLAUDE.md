@@ -121,6 +121,11 @@ prefer them over `.env` and local dev would hit production data.
   transcodes HEIC/HEIF to JPEG via `heic-convert` before handing off to
   sharp, so this should no longer come up, but keep it in mind if a
   future image-processing change reintroduces the gap.
+- Admin product photos get an optional crop/straighten editor before
+  upload (`image-crop-modal.tsx`, `react-easy-crop`, shared canvas helpers
+  in `src/lib/client-image.ts`). It only opens for canvas-decodable files,
+  so HEIC photos skip it and still go up raw for server-side conversion.
+  Crop ratios match the storefront's `aspect-[3/4]` product image frame.
 - Vercel's runtime log retention on this project's plan is very short
   (a couple of minutes in practice, not the days `vercel logs --since`
   implies) — don't rely on it to retroactively diagnose an incident
