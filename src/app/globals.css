@@ -42,12 +42,61 @@ body {
   animation: float-y 4.5s ease-in-out infinite;
 }
 
+/* Ring drawn on a pseudo-element and animated with transform/opacity only,
+   so it runs on the compositor. Animating box-shadow repainted the button
+   every frame on every page, which stutters scrolling on low-end phones. */
 @keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55); }
-  100% { box-shadow: 0 0 0 14px rgba(37, 211, 102, 0); }
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.5); opacity: 0; }
 }
-.animate-pulse-ring {
+/* Host must be positioned (the floater is `fixed`). */
+.animate-pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: rgba(37, 211, 102, 0.55);
+  z-index: -1;
+  pointer-events: none;
   animation: pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+/* Entrance animations. Pure CSS (not motion) so content is visible as soon
+   as the HTML paints. The old JS version server-rendered everything at
+   opacity 0 and only revealed it after the whole JS bundle hydrated, which
+   left product grids blank for seconds on slow phones. */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes reveal-pop {
+  from { opacity: 0; transform: scale(0.7) rotate(-8deg); }
+  to { opacity: 1; transform: none; }
+}
+.reveal,
+.reveal-group > * {
+  animation: reveal-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0s);
+}
+.reveal-pop {
+  animation: reveal-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.reveal-group > :nth-child(2) { --reveal-delay: calc(var(--stagger, 0.06s) * 1); }
+.reveal-group > :nth-child(3) { --reveal-delay: calc(var(--stagger, 0.06s) * 2); }
+.reveal-group > :nth-child(4) { --reveal-delay: calc(var(--stagger, 0.06s) * 3); }
+.reveal-group > :nth-child(5) { --reveal-delay: calc(var(--stagger, 0.06s) * 4); }
+.reveal-group > :nth-child(6) { --reveal-delay: calc(var(--stagger, 0.06s) * 5); }
+.reveal-group > :nth-child(7) { --reveal-delay: calc(var(--stagger, 0.06s) * 6); }
+.reveal-group > :nth-child(n + 8) { --reveal-delay: calc(var(--stagger, 0.06s) * 7); }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-group > *,
+  .reveal-pop,
+  .animate-float,
+  .animate-pulse-ring::after {
+    animation: none;
+  }
 }
 
 @keyframes pop {

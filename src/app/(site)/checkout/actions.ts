@@ -9,6 +9,7 @@ import { getOrderNotificationRecipients } from "@/lib/site-settings";
 import { InsufficientStockError, decrementStock, notifyLowStock } from "@/lib/stock";
 import { sendPushToAdmins } from "@/lib/push";
 import { formatPrice } from "@/lib/constants";
+import { revalidateStorefront } from "@/lib/revalidate";
 
 export type CheckoutItem = {
   productId: string;
@@ -116,6 +117,9 @@ export async function placeOrder(input: CheckoutInput) {
     }
     throw error;
   }
+
+  // Stock changed, so cached product pages need to pick up the new counts.
+  revalidateStorefront();
 
   if (session?.user?.id && !session.user.email) {
     await prisma.user

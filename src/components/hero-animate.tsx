@@ -1,42 +1,25 @@
-"use client";
+// CSS-only hero entrance (see .reveal / .reveal-pop in globals.css), so the
+// hero is visible on first paint rather than after hydration.
 
-import { motion, type Variants } from "motion/react";
-
-const container: Variants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
-};
-
-const item: Variants = {
-  hidden: { opacity: 0, y: 22 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
-};
+type CSSVars = React.CSSProperties & Record<`--${string}`, string>;
 
 export function HeroLogo({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.7, rotate: -8 }}
-      animate={{ opacity: 1, scale: 1, rotate: 0 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="mx-auto w-fit animate-float"
-    >
-      {children}
-    </motion.div>
+    <div className="reveal-pop mx-auto w-fit">
+      <div className="animate-float">{children}</div>
+    </div>
   );
 }
 
 export function HeroStagger({ children, className }: { children: React.ReactNode; className?: string }) {
+  const style: CSSVars = { "--stagger": "0.12s" };
   return (
-    <motion.div initial="hidden" animate="show" variants={container} className={className}>
+    <div className={`reveal-group ${className ?? ""}`} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
 export function HeroItem({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <motion.div variants={item} className={className}>
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }

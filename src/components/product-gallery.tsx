@@ -11,7 +11,9 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
   return (
     <div>
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-ivory">
-        <AnimatePresence mode="wait">
+        {/* initial={false}: show the first photo in the server HTML instead of
+            hiding it until hydration. Only thumbnail switches fade. */}
+        <AnimatePresence mode="wait" initial={false}>
           {displayImages[active] ? (
             <motion.div
               key={displayImages[active]}

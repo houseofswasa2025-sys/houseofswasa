@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "motion/react";
 import { Combobox } from "@/components/combobox";
@@ -9,9 +9,9 @@ import {
   compressForUpload,
   HEIC_NAME_RE,
   isCanvasEditable,
-  isHeic,
-  MAX_IMAGE_BYTES,
 } from "@/lib/client-image";
+import { runPool, uploadProductImage } from "@/lib/client-upload";
+import { MAX_RAW_UPLOAD_BYTES } from "@/lib/upload-limits";
 import type { Product, ProductColor } from "@/generated/prisma/client";
 import type { ProductFormState } from "./actions";
 
@@ -34,7 +34,9 @@ type Props = {
   action: (prevState: ProductFormState, formData: FormData) => Promise<ProductFormState>;
 };
 
-type StagedFile = { file: File; id: string; previewUrl: string };
+// `uploadedUrl` is set once the photo reaches Blob storage, so pressing Save
+// again after a failure never re-sends photos that already made it.
+type StagedFile = { file: File; id: string; previewUrl: string; uploadedUrl?: string };
 
 type ColorRowState = {
   key: string;
@@ -73,20 +75,14 @@ function ColorRowEditor({
   onRemove: () => void;
   colorPresets: string[];
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState("");
   const [compressing, setCompressing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = row.staged.find((s) => s.id === editingId) ?? null;
 
-  function syncInputFiles(files: StagedFile[]) {
-    const dt = new DataTransfer();
-    files.forEach((s) => dt.items.add(s.file));
-    if (inputRef.current) inputRef.current.files = dt.files;
-  }
-
   async function handlePick(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
+    e.target.value = ""; // allow picking the same photo again later
     setFileError("");
 
     const candidates: File[] = [];
@@ -95,8 +91,8 @@ function ColorRowEditor({
         setFileError(`"${file.name}" isn't an image file, skipped.`);
         continue;
       }
-      if (isHeic(file) && file.size > MAX_IMAGE_BYTES) {
-        setFileError(`"${file.name}" is larger than 8MB, skipped.`);
+      if (file.size > MAX_RAW_UPLOAD_BYTES) {
+        setFileError(`"${file.name}" is larger than 25MB, skipped.`);
         continue;
       }
       candidates.push(file);
@@ -115,7 +111,6 @@ function ColorRowEditor({
     }));
 
     const next = [...row.staged, ...accepted];
-    syncInputFiles(next);
     onChange({ ...row, staged: next });
   }
 
@@ -123,7 +118,6 @@ function ColorRowEditor({
     const removed = row.staged.find((s) => s.id === id);
     if (removed) URL.revokeObjectURL(removed.previewUrl);
     const next = row.staged.filter((s) => s.id !== id);
-    syncInputFiles(next);
     onChange({ ...row, staged: next });
   }
 
@@ -133,7 +127,6 @@ function ColorRowEditor({
       URL.revokeObjectURL(s.previewUrl);
       return { file, id: s.id, previewUrl: URL.createObjectURL(file) };
     });
-    syncInputFiles(next);
     onChange({ ...row, staged: next });
     setEditingId(null);
   }
@@ -245,9 +238,7 @@ function ColorRowEditor({
         )}
 
         <input
-          ref={inputRef}
           type="file"
-          name={`colorNewImages_${row.key}`}
           multiple
           accept="image/*"
           disabled={compressing}
@@ -292,6 +283,54 @@ export function ProductForm({ product, presets, action }: Props) {
   const [categories, setCategories] = useState<string[]>(product?.categories ?? []);
   const [occasions, setOccasions] = useState<string[]>(product?.occasions ?? []);
   const [state, formAction, pending] = useActionState(action, undefined);
+  const [, startTransition] = useTransition();
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState("");
+  const busy = pending || uploadStatus !== null;
+
+  // Photos go straight to Blob storage first, then the save action receives
+  // only their URLs. Submitting via startTransition (not <form action>) also
+  // stops React from resetting the form, so a failed save keeps everything
+  // the admin typed and picked.
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (busy) return;
+    const form = e.currentTarget;
+    setUploadError("");
+
+    const urls = new Map<string, string>();
+    rows.forEach((r) => r.staged.forEach((s) => s.uploadedUrl && urls.set(s.id, s.uploadedUrl)));
+    const toUpload = rows.flatMap((r) => r.staged.filter((s) => !s.uploadedUrl));
+
+    if (toUpload.length > 0) {
+      let done = 0;
+      setUploadStatus(`Uploading photos 0/${toUpload.length}...`);
+      const failures = await runPool(toUpload, 3, async (s) => {
+        urls.set(s.id, await uploadProductImage(s.file));
+        done += 1;
+        setUploadStatus(`Uploading photos ${done}/${toUpload.length}...`);
+      });
+      setRows((prev) =>
+        prev.map((r) => ({
+          ...r,
+          staged: r.staged.map((s) => (urls.has(s.id) ? { ...s, uploadedUrl: urls.get(s.id) } : s)),
+        }))
+      );
+      setUploadStatus(null);
+      if (failures > 0) {
+        setUploadError(
+          `${failures} photo${failures === 1 ? "" : "s"} didn't upload. Check your internet and press Save again, photos that already uploaded won't be sent twice.`
+        );
+        return;
+      }
+    }
+
+    const formData = new FormData(form);
+    rows.forEach((r) =>
+      r.staged.forEach((s) => formData.append(`colorNewImageUrls_${r.key}`, urls.get(s.id)!))
+    );
+    startTransition(() => formAction(formData));
+  }
 
   function updateRow(index: number, next: ColorRowState) {
     setRows((prev) => prev.map((r, i) => (i === index ? next : r)));
@@ -302,7 +341,7 @@ export function ProductForm({ product, presets, action }: Props) {
   }
 
   return (
-    <form action={formAction} className="max-w-3xl space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       <input type="hidden" name="slug" value={product?.slug ?? ""} />
       <div>
         <label className="mb-1 block text-sm font-medium text-foreground/70">Name</label>
@@ -450,21 +489,21 @@ export function ProductForm({ product, presets, action }: Props) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={pending}
+          disabled={busy}
           className="rounded-full bg-maroon px-6 py-2.5 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:bg-maroon-dark hover:shadow-md active:scale-95 disabled:opacity-60"
         >
-          {pending ? "Saving..." : product ? "Save Changes" : "Create Product"}
+          {uploadStatus ?? (pending ? "Saving..." : product ? "Save Changes" : "Create Product")}
         </button>
 
         <AnimatePresence>
-          {state?.error && (
+          {(uploadError || state?.error) && (
             <motion.p
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0 }}
               className="text-sm font-medium text-red-600"
             >
-              {state.error}
+              {uploadError || state?.error}
             </motion.p>
           )}
         </AnimatePresence>

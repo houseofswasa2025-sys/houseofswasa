@@ -47,7 +47,9 @@ export function ProductTabs({ tabs }: { tabs: Tab[] }) {
         </Link>
       </div>
 
-      <AnimatePresence mode="wait">
+      {/* initial={false}: the first tab must be visible in the server HTML, not
+          hidden until hydration. Only tab switches animate. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={activeTab.key}
           initial={{ opacity: 0, y: 12 }}

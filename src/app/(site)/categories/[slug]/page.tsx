@@ -4,6 +4,12 @@ import { ProductGrid } from "@/components/product-grid";
 import { CATEGORIES } from "@/lib/constants";
 import { toSlug } from "@/lib/slug";
 
+// Empty list = nothing prebuilt at deploy, but each page is cached after its
+// first visit (ISR) and refreshed by revalidateStorefront().
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const category = CATEGORIES.find((c) => toSlug(c) === slug);

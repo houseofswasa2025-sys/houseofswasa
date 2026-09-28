@@ -1,11 +1,8 @@
-"use client";
+// CSS-only entrance animations (see .reveal / .reveal-group in globals.css).
+// Kept as plain server components so revealed content is in the painted HTML
+// immediately instead of waiting for client JS to hydrate.
 
-import { motion, type Variants } from "motion/react";
-
-const variants: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0 },
-};
+type CSSVars = React.CSSProperties & Record<`--${string}`, string>;
 
 export function Reveal({
   children,
@@ -16,17 +13,11 @@ export function Reveal({
   delay?: number;
   className?: string;
 }) {
+  const style: CSSVars | undefined = delay ? { "--reveal-delay": `${delay}s` } : undefined;
   return (
-    <motion.div
-      className={className}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-40px" }}
-      variants={variants}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
+    <div className={`reveal ${className ?? ""}`} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -39,16 +30,11 @@ export function RevealGroup({
   className?: string;
   stagger?: number;
 }) {
+  const style: CSSVars = { "--stagger": `${stagger}s` };
   return (
-    <motion.div
-      className={className}
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, margin: "-20px" }}
-      transition={{ staggerChildren: stagger }}
-    >
+    <div className={`reveal-group ${className ?? ""}`} style={style}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -59,9 +45,5 @@ export function RevealItem({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <motion.div className={className} variants={variants} transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}>
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 }

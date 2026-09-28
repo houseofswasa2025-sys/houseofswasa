@@ -41,7 +41,7 @@ export function SiteHeader() {
   const totalItems = useCartStore((s) => s.totalItems());
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gold-light/60 bg-cream/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-gold-light/60 bg-cream">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
         <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
           <Image

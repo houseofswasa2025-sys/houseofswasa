@@ -4,6 +4,12 @@ import { getProductBySlug, getProducts } from "@/lib/products";
 import { ProductGrid } from "@/components/product-grid";
 import { ProductDetailClient } from "@/components/product-detail-client";
 
+// Empty list = nothing prebuilt at deploy, but each page is cached after its
+// first visit (ISR) and refreshed by revalidateStorefront().
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);

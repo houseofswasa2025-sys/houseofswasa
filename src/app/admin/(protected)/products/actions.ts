@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 import { put, del } from "@vercel/blob";
 import sharp from "sharp";
@@ -10,10 +11,11 @@ import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
 import { requireAdmin } from "@/lib/require-admin";
 import { registerPresets } from "@/lib/presets";
+import { RAW_UPLOAD_PREFIX } from "@/lib/upload-limits";
 
 export type ProductFormState = { error?: string } | undefined;
 
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
 function parseList(formData: FormData, key: string): string[] {
   return formData.getAll(key).map(String).filter(Boolean);
@@ -23,14 +25,11 @@ class ImageUploadError extends Error {}
 
 const HEIC_NAME_RE = /\.hei[cf]$/i;
 
-async function compressImage(file: File): Promise<Buffer> {
-  let buffer = Buffer.from(await file.arrayBuffer());
-
+async function compressImage(buffer: Buffer, isHeic: boolean): Promise<Buffer> {
   // iPhones default to HEIC, which the sharp build here can't decode (no
   // libheif codec in the prebuilt binary, only the royalty-free AVIF
   // sibling format). Transcode to JPEG first so the rest of the pipeline
   // never needs to know the source format.
-  const isHeic = /^image\/hei[cf]/i.test(file.type) || HEIC_NAME_RE.test(file.name);
   if (isHeic) {
     const jpeg = await convertHeic({ buffer, format: "JPEG", quality: 0.92 });
     buffer = Buffer.from(jpeg);
@@ -43,36 +42,71 @@ async function compressImage(file: File): Promise<Buffer> {
     .toBuffer();
 }
 
-async function uploadFiles(files: File[]): Promise<string[]> {
-  if (files.length === 0) return [];
-
-  for (const file of files) {
-    if (!file.type.startsWith("image/") && !HEIC_NAME_RE.test(file.name)) {
-      throw new ImageUploadError(`"${file.name}" isn't an image file.`);
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      throw new ImageUploadError(`"${file.name}" is larger than 8MB, please compress it and try again.`);
-    }
-  }
-
-  const uploaded: string[] = [];
+// Only accept raw uploads the admin just made through /api/admin/upload.
+function isRawUploadUrl(value: string) {
   try {
-    for (const file of files) {
-      const compressed = await compressImage(file);
-      const baseName = file.name.replace(/\.[^.]+$/, "");
-      const blob = await put(`products/${Date.now()}-${baseName}.webp`, compressed, {
-        access: "public",
-        addRandomSuffix: true,
-        contentType: "image/webp",
-      });
-      uploaded.push(blob.url);
-    }
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      url.hostname.endsWith(BLOB_HOST_SUFFIX) &&
+      url.pathname.startsWith(`/${RAW_UPLOAD_PREFIX}`)
+    );
   } catch {
-    await Promise.all(uploaded.map((url) => del(url).catch(() => {})));
-    throw new ImageUploadError(`Couldn't upload one of the images: the file may be corrupted or in an unsupported format. Please try a JPEG, PNG, WebP, or HEIC photo.`);
+    return false;
+  }
+}
+
+async function processRawImage(rawUrl: string): Promise<string> {
+  const res = await fetch(rawUrl, { cache: "no-store" });
+  if (!res.ok) throw new Error(`fetch ${res.status}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+
+  const pathname = new URL(rawUrl).pathname;
+  const isHeic =
+    /^image\/hei[cf]/i.test(res.headers.get("content-type") ?? "") || HEIC_NAME_RE.test(pathname);
+  const compressed = await compressImage(buffer, isHeic);
+
+  const baseName = decodeURIComponent(pathname.split("/").pop() ?? "photo").replace(/\.[^.]+$/, "");
+  const blob = await put(`products/${Date.now()}-${baseName}.webp`, compressed, {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: "image/webp",
+  });
+  return blob.url;
+}
+
+// Converts the browser's raw uploads to compressed WebP. The raw originals
+// are deleted by the caller only after the product save succeeds, so a failed
+// save can be retried without the admin re-uploading anything.
+async function processUploads(rawUrls: string[]): Promise<string[]> {
+  if (rawUrls.some((u) => !isRawUploadUrl(u))) {
+    throw new ImageUploadError("One of the photos has an invalid upload link. Please remove it and add it again.");
   }
 
-  return uploaded;
+  const results: string[] = new Array(rawUrls.length);
+  let next = 0;
+  let failed = false;
+  // Small pool: HEIC conversion is memory heavy, so never run all at once.
+  async function worker() {
+    while (!failed && next < rawUrls.length) {
+      const i = next++;
+      try {
+        results[i] = await processRawImage(rawUrls[i]);
+      } catch (error) {
+        console.error("Product image processing failed:", rawUrls[i], error);
+        failed = true;
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(3, rawUrls.length) }, worker));
+
+  if (failed) {
+    await Promise.all(results.filter(Boolean).map((url) => del(url).catch(() => {})));
+    throw new ImageUploadError(
+      "Couldn't process one of the photos: it may be corrupted or in an unsupported format. Please try a JPEG, PNG, WebP, or HEIC photo."
+    );
+  }
+  return results;
 }
 
 type ColorRowInput = {
@@ -81,7 +115,7 @@ type ColorRowInput = {
   name: string;
   stock: number;
   existingImages: string[];
-  newFiles: File[];
+  newUploadUrls: string[];
 };
 
 function parseColorRows(formData: FormData): ColorRowInput[] {
@@ -96,9 +130,7 @@ function parseColorRows(formData: FormData): ColorRowInput[] {
     name: (names[i] ?? "").trim(),
     stock: Math.max(0, Math.floor(Number(stocks[i]) || 0)),
     existingImages: formData.getAll(`colorExistingImages_${key}`).map(String).filter(Boolean),
-    newFiles: formData
-      .getAll(`colorNewImages_${key}`)
-      .filter((f): f is File => f instanceof File && f.size > 0),
+    newUploadUrls: formData.getAll(`colorNewImageUrls_${key}`).map(String).filter(Boolean),
   }));
 }
 
@@ -155,11 +187,14 @@ export async function createProduct(
 
   let uploadedByRow: string[][];
   try {
-    uploadedByRow = await Promise.all(rows.map((r) => uploadFiles(r.newFiles)));
+    const processed = await processUploads(rows.flatMap((r) => r.newUploadUrls));
+    let offset = 0;
+    uploadedByRow = rows.map((r) => processed.slice(offset, (offset += r.newUploadUrls.length)));
   } catch (error) {
-    return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
+    return { error: error instanceof ImageUploadError ? error.message : "Couldn't process images." };
   }
   const allUploaded = uploadedByRow.flat();
+  const rawUploads = rows.flatMap((r) => r.newUploadUrls);
 
   try {
     await prisma.product.create({
@@ -181,6 +216,8 @@ export async function createProduct(
     return { error: friendlySaveError(error) };
   }
 
+  await Promise.all(rawUploads.map((url) => del(url).catch(() => {})));
+
   await registerPresets({
     categories: data.categories,
     occasions: data.occasions,
@@ -189,7 +226,7 @@ export async function createProduct(
   });
 
   revalidatePath("/admin/products");
-  revalidatePath("/sarees");
+  revalidateStorefront();
   redirect("/admin/products");
 }
 
@@ -215,11 +252,14 @@ export async function updateProduct(
 
   let uploadedByRow: string[][];
   try {
-    uploadedByRow = await Promise.all(rows.map((r) => uploadFiles(r.newFiles)));
+    const processed = await processUploads(rows.flatMap((r) => r.newUploadUrls));
+    let offset = 0;
+    uploadedByRow = rows.map((r) => processed.slice(offset, (offset += r.newUploadUrls.length)));
   } catch (error) {
-    return { error: error instanceof ImageUploadError ? error.message : "Couldn't upload images." };
+    return { error: error instanceof ImageUploadError ? error.message : "Couldn't process images." };
   }
   const allUploaded = uploadedByRow.flat();
+  const rawUploads = rows.flatMap((r) => r.newUploadUrls);
 
   const submittedColorIds = new Set(rows.map((r) => r.colorId).filter(Boolean));
   const removedColors = existingProduct.colors.filter((c) => !submittedColorIds.has(c.id));
@@ -252,6 +292,8 @@ export async function updateProduct(
     return { error: friendlySaveError(error) };
   }
 
+  await Promise.all(rawUploads.map((url) => del(url).catch(() => {})));
+
   await registerPresets({
     categories: data.categories,
     occasions: data.occasions,
@@ -268,8 +310,7 @@ export async function updateProduct(
   await Promise.all(orphanedImages.map((url) => del(url).catch(() => {})));
 
   revalidatePath("/admin/products");
-  revalidatePath(`/products/${data.slug}`);
-  revalidatePath("/sarees");
+  revalidateStorefront();
   redirect("/admin/products");
 }
 
@@ -283,7 +324,7 @@ export async function deleteProduct(productId: string) {
     await Promise.all(allImages.map((url) => del(url).catch(() => {})));
   }
   revalidatePath("/admin/products");
-  revalidatePath("/sarees");
+  revalidateStorefront();
 }
 
 export async function toggleActive(productId: string, isActive: boolean) {
@@ -291,5 +332,5 @@ export async function toggleActive(productId: string, isActive: boolean) {
 
   await prisma.product.update({ where: { id: productId }, data: { isActive } });
   revalidatePath("/admin/products");
-  revalidatePath("/sarees");
+  revalidateStorefront();
 }

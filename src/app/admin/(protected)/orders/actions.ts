@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateStorefront } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -89,7 +90,7 @@ export async function updateOrderStatus(
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
-  revalidatePath("/sarees");
+  revalidateStorefront();
   return { success: true };
 }
 
@@ -204,6 +205,6 @@ export async function createManualOrder(input: ManualOrderInput) {
   revalidatePath("/admin/orders");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
-  revalidatePath("/sarees");
+  revalidateStorefront();
   redirect(`/admin/orders/${orderId}`);
 }
