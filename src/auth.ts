@@ -21,7 +21,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined;
         if (!identifier || !password) return null;
         // Slow down password guessing against a single account.
-        if (!rateLimit(`login:${identifier.toLowerCase()}`, 10, 15 * 60 * 1000)) return null;
+        if (!(await rateLimit(`login:${identifier.toLowerCase()}`, 10, 15 * 60 * 1000))) return null;
 
         const user = await prisma.user.findFirst({
           where: { OR: [{ phone: identifier }, { email: identifier }] },

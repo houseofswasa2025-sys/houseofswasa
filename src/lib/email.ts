@@ -4,7 +4,14 @@ import { getSiteSettings } from "@/lib/site-settings";
 import { escapeHtml as e } from "@/lib/escape-html";
 import type { Order, OrderItem, OrderStatus } from "@/generated/prisma/client";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Created lazily: `new Resend()` throws without a key, and at module load
+// that took checkout down with it. No key now just means no emails.
+let resendClient: Resend | null = null;
+function getResend() {
+  if (!process.env.RESEND_API_KEY) return null;
+  resendClient ??= new Resend(process.env.RESEND_API_KEY);
+  return resendClient;
+}
 const FROM = process.env.EMAIL_FROM ?? "House of Swasa <orders@houseofswasa.com>";
 
 type OrderWithItems = Order & { items: OrderItem[] };
@@ -98,6 +105,8 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
     ${await supportFooter()}`
   );
 
+  const resend = getResend();
+  if (!resend) return;
   await resend.emails.send({
     from: FROM,
     to: order.email,
@@ -124,6 +133,8 @@ export async function sendOrderStatusUpdateEmail(order: OrderWithItems) {
     ${await supportFooter()}`
   );
 
+  const resend = getResend();
+  if (!resend) return;
   await resend.emails.send({
     from: FROM,
     to: order.email,
@@ -149,6 +160,8 @@ export async function sendAdminNewOrderEmail(recipients: string[], order: OrderW
     </p>`
   );
 
+  const resend = getResend();
+  if (!resend) return;
   await resend.emails.send({
     from: FROM,
     to: recipients,

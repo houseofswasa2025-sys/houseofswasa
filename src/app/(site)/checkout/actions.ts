@@ -208,7 +208,7 @@ export async function placeOrder(rawInput: CheckoutInput): Promise<PlaceOrderRes
             subtotal,
             total: subtotal,
             items: {
-              create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+              create: orderItems,
             },
           },
           include: { items: true },

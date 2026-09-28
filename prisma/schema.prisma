@@ -166,6 +166,10 @@ model OrderItem {
   price       Int
   quantity    Int
   color       String?
+  // The exact ProductColor row sold, so cancelling restores the right stock
+  // even after the color is renamed. Null for orders placed before this
+  // existed (those fall back to matching by name) or if the color is deleted.
+  colorId     String?
 }
 
 model Review {
@@ -198,4 +202,14 @@ model SiteSettings {
   whatsappNumber String  @default("919652282268")
   contactEmail   String  @default("swathi.pisarla98@gmail.com")
   orderNotificationEmails String[] @default([])
+}
+
+// Fixed-window counters for throttling (e.g. login attempts), shared across
+// serverless instances. Rows are tiny and reused per key.
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
 }

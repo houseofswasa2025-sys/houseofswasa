@@ -21,10 +21,16 @@ async function claimStatusChange(tx: Prisma.TransactionClient, orderId: string, 
   if (result.count === 0) throw new StatusConflictError();
 }
 
-async function findColorRow(productId: string, colorName: string | null) {
-  if (!colorName) return null;
+// Prefer the exact color row recorded on the order line (survives renames);
+// orders from before colorId existed fall back to matching by name.
+async function findColorRow(item: { productId: string | null; colorId: string | null; color: string | null }) {
+  if (item.colorId) {
+    const byId = await prisma.productColor.findUnique({ where: { id: item.colorId } });
+    if (byId) return byId;
+  }
+  if (!item.productId || !item.color) return null;
   return prisma.productColor.findUnique({
-    where: { productId_name: { productId, name: colorName } },
+    where: { productId_name: { productId: item.productId, name: item.color } },
   });
 }
 
@@ -44,7 +50,7 @@ export async function updateOrderStatus(
 
   const itemsWithProduct = order.items.filter((i) => i.productId);
   const colorRows = await Promise.all(
-    itemsWithProduct.map((i) => findColorRow(i.productId!, i.color))
+    itemsWithProduct.map((i) => findColorRow(i))
   );
 
   if (isCancelling && !wasCancelled) {
@@ -194,7 +200,7 @@ export async function createManualOrder(input: ManualOrderInput) {
             status: input.status,
             source: "WHATSAPP",
             items: {
-              create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+              create: orderItems,
             },
           },
           include: { items: true },
