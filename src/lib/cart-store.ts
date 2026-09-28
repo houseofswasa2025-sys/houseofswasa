@@ -19,6 +19,7 @@ type CartState = {
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
   removeItem: (productId: string, color?: string) => void;
   updateQuantity: (productId: string, quantity: number, color?: string) => void;
+  applyPriceUpdates: (updates: { productId: string; color?: string; price: number }[]) => void;
   clear: () => void;
   totalItems: () => number;
   totalPrice: () => number;
@@ -64,6 +65,13 @@ export const useCartStore = create<CartState>()(
                 : i
             )
             .filter((i) => i.quantity > 0),
+        })),
+      applyPriceUpdates: (updates) =>
+        set((state) => ({
+          items: state.items.map((i) => {
+            const u = updates.find((x) => x.productId === i.productId && x.color === i.color);
+            return u ? { ...i, price: u.price } : i;
+          }),
         })),
       clear: () => set({ items: [] }),
       totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),

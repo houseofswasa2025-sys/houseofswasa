@@ -45,7 +45,7 @@ export function ManualOrderForm({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [addressLine1, setAddressLine1] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
+  const [addressLine2] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
@@ -65,6 +65,8 @@ export function ManualOrderForm({
       }
     }
     if (prefillProductName) {
+      // One-time prefill from the URL on mount, not a render cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotes((n) => n || `Enquired about: ${prefillProductName}`);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,7 +95,7 @@ export function ManualOrderForm({
         {
           productId: product.id,
           colorId: color.id,
-          label: `${product.name} — ${color.name}`,
+          label: `${product.name} (${color.name})`,
           price: product.salePrice ?? product.price,
           quantity: 1,
           maxStock: color.stock,
@@ -167,7 +169,7 @@ export function ManualOrderForm({
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {formatPrice(p.salePrice ?? p.price)}
+                  {p.name}, {formatPrice(p.salePrice ?? p.price)}
                 </option>
               ))}
             </select>

@@ -12,7 +12,7 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
     <div className="flex flex-col items-start px-2 py-12">
       <h1 className="text-xl font-bold text-maroon">Something went wrong</h1>
       <p className="mt-2 text-sm text-foreground/60">
-        This page hit an error. Your data is safe — try again, and if it keeps happening let
+        This page hit an error. Your data is safe. Try again, and if it keeps happening let
         Revanth know.
       </p>
       <div className="mt-5 flex items-center gap-3">

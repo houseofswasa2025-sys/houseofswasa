@@ -9,7 +9,17 @@ import { auth } from "@/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "@/lib/email";
 import { InsufficientStockError, decrementStock, notifyLowStock } from "@/lib/stock";
-import type { OrderStatus } from "@/generated/prisma/client";
+import type { OrderStatus, Prisma } from "@/generated/prisma/client";
+import { withOrderNumber } from "@/lib/order-number";
+
+class StatusConflictError extends Error {}
+
+// Flips the status only if nobody else changed it since we read the order.
+// Without this, two quick taps on "Cancel" both restored the stock.
+async function claimStatusChange(tx: Prisma.TransactionClient, orderId: string, from: OrderStatus, to: OrderStatus) {
+  const result = await tx.order.updateMany({ where: { id: orderId, status: from }, data: { status: to } });
+  if (result.count === 0) throw new StatusConflictError();
+}
 
 async function findColorRow(productId: string, colorName: string | null) {
   if (!colorName) return null;
@@ -39,18 +49,23 @@ export async function updateOrderStatus(
 
   if (isCancelling && !wasCancelled) {
     // Restore stock for items tied to a known color.
-    await prisma.$transaction([
-      ...itemsWithProduct
-        .map((i, idx) => ({ item: i, colorRow: colorRows[idx] }))
-        .filter((x) => x.colorRow)
-        .map((x) =>
-          prisma.productColor.update({
-            where: { id: x.colorRow!.id },
-            data: { stock: { increment: x.item.quantity } },
-          })
-        ),
-      prisma.order.update({ where: { id: orderId }, data: { status } }),
-    ]);
+    try {
+      await prisma.$transaction(async (tx) => {
+        await claimStatusChange(tx, orderId, order.status, status);
+        for (let i = 0; i < itemsWithProduct.length; i++) {
+          if (!colorRows[i]) continue;
+          await tx.productColor.update({
+            where: { id: colorRows[i]!.id },
+            data: { stock: { increment: itemsWithProduct[i].quantity } },
+          });
+        }
+      });
+    } catch (error) {
+      if (error instanceof StatusConflictError) {
+        return { error: "This order was just updated elsewhere. Please refresh the page." };
+      }
+      throw error;
+    }
   } else if (wasCancelled && !isCancelling) {
     // Re-reserve stock; block if a color no longer exists at all.
     for (let i = 0; i < itemsWithProduct.length; i++) {
@@ -63,14 +78,17 @@ export async function updateOrderStatus(
     }
     try {
       await prisma.$transaction(async (tx) => {
+        await claimStatusChange(tx, orderId, order.status, status);
         for (let i = 0; i < itemsWithProduct.length; i++) {
           const item = itemsWithProduct[i];
           const label = `${item.productName}${item.color ? ` (${item.color})` : ""}`;
           await decrementStock(tx, colorRows[i]!.id, item.quantity, label);
         }
-        await tx.order.update({ where: { id: orderId }, data: { status } });
       });
     } catch (error) {
+      if (error instanceof StatusConflictError) {
+        return { error: "This order was just updated elsewhere. Please refresh the page." };
+      }
       if (error instanceof InsufficientStockError) {
         return { error: `Cannot restore this order: ${error.message} Adjust stock first.` };
       }
@@ -154,40 +172,41 @@ export async function createManualOrder(input: ManualOrderInput) {
   });
 
   const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  const orderNumber = `HOS${Date.now().toString().slice(-8)}`;
 
   let orderId: string;
   try {
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          orderNumber,
-          customerName: input.customerName.trim(),
-          phone: input.phone.trim(),
-          email: input.email?.trim() || undefined,
-          addressLine1: input.addressLine1?.trim() || "Shared via WhatsApp",
-          addressLine2: input.addressLine2?.trim() || undefined,
-          city: input.city?.trim() || "-",
-          state: input.state?.trim() || "-",
-          pincode: input.pincode?.trim() || "-",
-          notes: input.notes?.trim() || undefined,
-          subtotal,
-          total: subtotal,
-          status: input.status,
-          source: "WHATSAPP",
-          items: {
-            create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+    const order = await withOrderNumber((orderNumber) =>
+      prisma.$transaction(async (tx) => {
+        const created = await tx.order.create({
+          data: {
+            orderNumber,
+            customerName: input.customerName.trim(),
+            phone: input.phone.trim(),
+            email: input.email?.trim() || undefined,
+            addressLine1: input.addressLine1?.trim() || "Shared via WhatsApp",
+            addressLine2: input.addressLine2?.trim() || undefined,
+            city: input.city?.trim() || "-",
+            state: input.state?.trim() || "-",
+            pincode: input.pincode?.trim() || "-",
+            notes: input.notes?.trim() || undefined,
+            subtotal,
+            total: subtotal,
+            status: input.status,
+            source: "WHATSAPP",
+            items: {
+              create: orderItems.map(({ colorId: _colorId, ...rest }) => rest),
+            },
           },
-        },
-        include: { items: true },
-      });
+          include: { items: true },
+        });
 
-      for (const item of orderItems) {
-        await decrementStock(tx, item.colorId, item.quantity, `${item.productName} (${item.color})`);
-      }
+        for (const item of orderItems) {
+          await decrementStock(tx, item.colorId, item.quantity, `${item.productName} (${item.color})`);
+        }
 
-      return created;
-    });
+        return created;
+      })
+    );
     orderId = order.id;
     after(async () => {
       await sendOrderConfirmationEmail(order).catch((err) =>

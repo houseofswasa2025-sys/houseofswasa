@@ -13,7 +13,7 @@ export default function SiteError({ error, reset }: { error: Error & { digest?: 
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-24 text-center">
       <h1 className="font-serif text-2xl font-semibold text-maroon">Something went wrong</h1>
       <p className="mt-3 text-sm text-foreground/60">
-        That didn&apos;t go through on our end. Nothing you did was lost — please try again, or
+        That didn&apos;t go through on our end. Nothing you did was lost. Please try again, or
         message us on WhatsApp if it keeps happening.
       </p>
       <div className="mt-6 flex flex-col items-center gap-3">

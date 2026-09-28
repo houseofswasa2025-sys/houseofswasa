@@ -24,7 +24,7 @@ export default async function AdminReviewsPage() {
                   r.approved ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                 }`}
               >
-                {r.approved ? "Approved" : "Pending — Approve"}
+                {r.approved ? "Approved" : "Pending: Approve"}
               </AdminActionButton>
               <AdminActionButton
                 action={deleteReview.bind(null, r.id)}

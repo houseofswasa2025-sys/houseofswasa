@@ -21,6 +21,8 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
 
   useEffect(() => {
     if (state?.success) {
+      // Reacting to the action result is exactly what this effect is for.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowToast(true);
       const timer = setTimeout(() => setShowToast(false), 2800);
       return () => clearTimeout(timer);

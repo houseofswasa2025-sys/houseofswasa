@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Playfair_Display } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { SwScopeCleanup } from "@/components/sw-scope-cleanup";
-import { SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL } from "@/lib/constants";
 import "./globals.css";
 
 const poppins = Poppins({
@@ -18,9 +18,15 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: `${SITE_NAME} | ${SITE_TAGLINE}`, template: `%s | ${SITE_NAME}` },
   description:
     "House of Swasa is a home-based saree boutique offering Silk, Cotton, Banarasi, Kanjivaram, Organza and festive sarees at affordable prices. Shop online or order via WhatsApp.",
+  openGraph: {
+    siteName: SITE_NAME,
+    type: "website",
+    locale: "en_IN",
+  },
   icons: {
     icon: "/images/icon-192.png",
     apple: "/images/apple-touch-icon.png",

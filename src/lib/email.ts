@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { formatPrice, SITE_URL } from "@/lib/constants";
 import { getSiteSettings } from "@/lib/site-settings";
+import { escapeHtml as e } from "@/lib/escape-html";
 import type { Order, OrderItem, OrderStatus } from "@/generated/prisma/client";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -51,7 +52,7 @@ function itemsTable(items: OrderItem[]) {
       (item) => `
       <tr>
         <td style="padding:8px 0;border-bottom:1px solid #f7f1e6;">
-          ${item.productName}${item.color ? ` <span style="color:#8a7a6a;">(${item.color})</span>` : ""}
+          ${e(item.productName)}${item.color ? ` <span style="color:#8a7a6a;">(${e(item.color)})</span>` : ""}
           <br /><span style="color:#8a7a6a;font-size:13px;">Qty ${item.quantity}</span>
         </td>
         <td style="padding:8px 0;border-bottom:1px solid #f7f1e6;text-align:right;white-space:nowrap;">
@@ -70,8 +71,8 @@ async function supportFooter() {
   return `
     <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #f7f1e6;font-size:13px;color:#8a7a6a;">
       <strong style="color:#2a1a1f;">Please do not reply to this email.</strong> For support, contact us at
-      <strong style="color:#2a1a1f;">${settings.contactEmail}</strong> or
-      <strong style="color:#2a1a1f;">+${settings.whatsappNumber}</strong>.
+      <strong style="color:#2a1a1f;">${e(settings.contactEmail)}</strong> or
+      <strong style="color:#2a1a1f;">+${e(settings.whatsappNumber)}</strong>.
     </p>`;
 }
 
@@ -81,15 +82,15 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const html = layout(
     "Order Confirmed",
     `
-    <p style="margin:0 0 4px;">Hi ${order.customerName},</p>
+    <p style="margin:0 0 4px;">Hi ${e(order.customerName)},</p>
     <p style="margin:0 0 16px;">Thanks for your order! Here's a summary of what you ordered.</p>
-    <p style="margin:0 0 16px;font-size:14px;color:#8a7a6a;">Order <strong style="color:#2a1a1f;">${order.orderNumber}</strong></p>
+    <p style="margin:0 0 16px;font-size:14px;color:#8a7a6a;">Order <strong style="color:#2a1a1f;">${e(order.orderNumber)}</strong></p>
     ${itemsTable(order.items)}
     <p style="text-align:right;font-size:16px;font-weight:600;margin:16px 0 24px;">Total: ${formatPrice(order.total)}</p>
     <p style="margin:0 0 4px;font-size:14px;color:#8a7a6a;">Shipping to</p>
     <p style="margin:0 0 16px;font-size:14px;">
-      ${order.addressLine1}${order.addressLine2 ? `, ${order.addressLine2}` : ""}<br />
-      ${order.city}, ${order.state} ${order.pincode}
+      ${e(order.addressLine1)}${order.addressLine2 ? `, ${e(order.addressLine2)}` : ""}<br />
+      ${e(order.city)}, ${e(order.state)} ${e(order.pincode)}
     </p>
     <p style="margin:0;font-size:14px;color:#8a7a6a;">
       We'll confirm your order and delivery timeline shortly. Payment is Cash on Delivery unless otherwise arranged via WhatsApp.
@@ -113,9 +114,9 @@ export async function sendOrderStatusUpdateEmail(order: OrderWithItems) {
   const html = layout(
     `Order ${label}`,
     `
-    <p style="margin:0 0 4px;">Hi ${order.customerName},</p>
+    <p style="margin:0 0 4px;">Hi ${e(order.customerName)},</p>
     <p style="margin:0 0 16px;">
-      Your order <strong>${order.orderNumber}</strong> is now
+      Your order <strong>${e(order.orderNumber)}</strong> is now
       <strong style="color:#7a1f2f;">${label}</strong>.
     </p>
     ${itemsTable(order.items)}
@@ -138,9 +139,9 @@ export async function sendAdminNewOrderEmail(recipients: string[], order: OrderW
     "New Order Received",
     `
     <p style="margin:0 0 16px;">
-      <strong>${order.customerName}</strong> (${order.phone}${order.email ? `, ${order.email}` : ""}) just placed an order.
+      <strong>${e(order.customerName)}</strong> (${e(order.phone)}${order.email ? `, ${e(order.email)}` : ""}) just placed an order.
     </p>
-    <p style="margin:0 0 16px;font-size:14px;color:#8a7a6a;">Order <strong style="color:#2a1a1f;">${order.orderNumber}</strong> &middot; ${order.source === "WHATSAPP" ? "via WhatsApp" : "via website"}</p>
+    <p style="margin:0 0 16px;font-size:14px;color:#8a7a6a;">Order <strong style="color:#2a1a1f;">${e(order.orderNumber)}</strong> &middot; ${order.source === "WHATSAPP" ? "via WhatsApp" : "via website"}</p>
     ${itemsTable(order.items)}
     <p style="text-align:right;font-size:16px;font-weight:600;margin:16px 0 24px;">Total: ${formatPrice(order.total)}</p>
     <p style="margin:0;">

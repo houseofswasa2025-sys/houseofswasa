@@ -43,32 +43,33 @@ export function buildProductWhere(filters: ProductFilters): Prisma.ProductWhereI
       { fabric: { contains: filters.search, mode: "insensitive" } },
     ];
   }
-  if (filters.minPrice != null || filters.maxPrice != null) {
-    where.price = {};
-    if (filters.minPrice != null) where.price.gte = filters.minPrice;
-    if (filters.maxPrice != null) where.price.lte = filters.maxPrice;
-  }
+  // Price range is applied in getProducts against the effective price
+  // (sale price when set), which Prisma can't express as a column filter.
 
   return where;
 }
 
-export function buildOrderBy(sort?: ProductFilters["sort"]): Prisma.ProductOrderByWithRelationInput {
-  switch (sort) {
-    case "price-asc":
-      return { price: "asc" };
-    case "price-desc":
-      return { price: "desc" };
-    default:
-      return { createdAt: "desc" };
-  }
+export function effectivePrice(product: { price: number; salePrice: number | null }) {
+  return product.salePrice ?? product.price;
 }
 
 export async function getProducts(filters: ProductFilters = {}) {
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where: buildProductWhere(filters),
-    orderBy: buildOrderBy(filters.sort),
+    orderBy: { createdAt: "desc" },
     include: { colors: colorsOrder },
   });
+
+  // Filter and sort on what the customer actually pays. The catalog is small
+  // enough that doing this in memory is cheaper than a computed column.
+  const { minPrice, maxPrice, sort } = filters;
+  const inRange = products.filter((p) => {
+    const price = effectivePrice(p);
+    return (minPrice == null || price >= minPrice) && (maxPrice == null || price <= maxPrice);
+  });
+  if (sort === "price-asc") inRange.sort((a, b) => effectivePrice(a) - effectivePrice(b));
+  if (sort === "price-desc") inRange.sort((a, b) => effectivePrice(b) - effectivePrice(a));
+  return inRange;
 }
 
 export async function getProductBySlug(slug: string) {

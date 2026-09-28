@@ -18,8 +18,12 @@ const PAGE_LABELS: Record<string, string> = {
   floater: "Chat button",
 };
 
+function daysAgo(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
 export default async function AdminWhatsAppPage() {
-  const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const since30d = daysAgo(30);
 
   const [recentClicks, topProducts, totalLast30d] = await Promise.all([
     prisma.whatsAppClick.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
@@ -37,12 +41,12 @@ export default async function AdminWhatsAppPage() {
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-maroon">WhatsApp Interest</h1>
       <p className="mb-6 text-sm text-foreground/60">
-        Every tap on an "Order on WhatsApp" button or the chat bubble is logged here — this shows
+        Every tap on an &ldquo;Order on WhatsApp&rdquo; button or the chat bubble is logged here. This shows
         interest, not confirmed sales. When a chat turns into a real order,{" "}
         <Link href="/admin/orders/new" className="font-medium text-maroon hover:underline">
           log it as an order
         </Link>{" "}
-        so it's tracked alongside your website orders.
+        so it&apos;s tracked alongside your website orders.
       </p>
 
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -138,7 +138,7 @@ export default async function HomePage() {
                 <div className="h-full rounded-xl border border-gold-light/60 bg-white p-4 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
                   <p className="text-gold">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</p>
                   <p className="mt-2 text-sm italic text-foreground/70">&ldquo;{r.text}&rdquo;</p>
-                  <p className="mt-2 text-xs font-medium text-foreground/50">— {r.name}</p>
+                  <p className="mt-2 text-xs font-medium text-foreground/50">- {r.name}</p>
                 </div>
               </RevealItem>
             ))}

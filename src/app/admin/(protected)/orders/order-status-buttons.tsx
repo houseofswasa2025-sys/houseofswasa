@@ -54,7 +54,7 @@ export function OrderStatusButtons({ orderId, status }: { orderId: string; statu
       </AnimatePresence>
       {status === "CANCELLED" && (
         <p className="mt-3 text-xs text-foreground/50">
-          This order is cancelled — its items&apos; stock has been restored.
+          This order is cancelled. Its items&apos; stock has been restored.
         </p>
       )}
     </div>

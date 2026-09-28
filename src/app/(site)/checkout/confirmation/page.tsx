@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { whatsappLink, CONTACT } from "@/lib/constants";
+import { whatsappLink } from "@/lib/constants";
+import { getSiteSettings } from "@/lib/site-settings";
 import { SuccessCheck } from "@/components/success-check";
 
 export default async function OrderConfirmationPage({
@@ -7,7 +8,7 @@ export default async function OrderConfirmationPage({
 }: {
   searchParams: Promise<{ order?: string }>;
 }) {
-  const { order } = await searchParams;
+  const [{ order }, settings] = await Promise.all([searchParams, getSiteSettings()]);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-12 text-center">
@@ -24,7 +25,7 @@ export default async function OrderConfirmationPage({
       </p>
       <div className="mt-8 flex flex-col items-center gap-3">
         <a
-          href={whatsappLink(`Hi! I just placed order ${order ?? ""}. Please confirm.`, CONTACT.whatsappNumber)}
+          href={whatsappLink(`Hi! I just placed order ${order ?? ""}. Please confirm.`, settings.whatsappNumber)}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-full border border-[#25D366] px-5 py-2.5 text-sm font-semibold text-[#128C4A] hover:bg-[#25D366]/10"

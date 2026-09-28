@@ -109,6 +109,19 @@ async function processUploads(rawUrls: string[]): Promise<string[]> {
   return results;
 }
 
+// Deletes Blob images that no longer belong to the product, keeping any that
+// past orders still show as their thumbnail (OrderItem.image).
+async function deleteUnreferencedImages(urls: string[]) {
+  if (urls.length === 0) return;
+  const referenced = await prisma.orderItem.findMany({
+    where: { image: { in: urls } },
+    select: { image: true },
+    distinct: ["image"],
+  });
+  const keep = new Set(referenced.map((r) => r.image));
+  await Promise.all(urls.filter((url) => !keep.has(url)).map((url) => del(url).catch(() => {})));
+}
+
 type ColorRowInput = {
   key: string;
   colorId: string | null;
@@ -139,6 +152,16 @@ function validateColorRows(rows: ColorRowInput[]): string | null {
   const names = rows.map((r) => r.name.toLowerCase());
   if (rows.some((r) => !r.name)) return "Every color needs a name.";
   if (new Set(names).size !== names.length) return "Color names must be unique for this product.";
+  return null;
+}
+
+function validateProductData(data: ReturnType<typeof buildProductData>): string | null {
+  if (!data.name.trim()) return "Please enter a product name.";
+  if (!Number.isInteger(data.price) || data.price <= 0) return "Price must be a whole number above 0.";
+  if (data.salePrice != null && (!Number.isInteger(data.salePrice) || data.salePrice >= data.price)) {
+    return "Sale price must be a whole number lower than the price.";
+  }
+  if (!data.fabric.trim()) return "Please select or add a fabric.";
   return null;
 }
 
@@ -183,7 +206,8 @@ export async function createProduct(
   if (validationError) return { error: validationError };
 
   const data = buildProductData(formData);
-  if (!data.fabric.trim()) return { error: "Please select or add a fabric." };
+  const dataError = validateProductData(data);
+  if (dataError) return { error: dataError };
 
   let uploadedByRow: string[][];
   try {
@@ -248,7 +272,8 @@ export async function updateProduct(
   if (validationError) return { error: validationError };
 
   const data = buildProductData(formData);
-  if (!data.fabric.trim()) return { error: "Please select or add a fabric." };
+  const dataError = validateProductData(data);
+  if (dataError) return { error: dataError };
 
   let uploadedByRow: string[][];
   try {
@@ -260,6 +285,11 @@ export async function updateProduct(
   }
   const allUploaded = uploadedByRow.flat();
   const rawUploads = rows.flatMap((r) => r.newUploadUrls);
+
+  const ownColorIds = new Set(existingProduct.colors.map((c) => c.id));
+  if (rows.some((r) => r.colorId && !ownColorIds.has(r.colorId))) {
+    return { error: "This form is out of date. Please reload the page and try again." };
+  }
 
   const submittedColorIds = new Set(rows.map((r) => r.colorId).filter(Boolean));
   const removedColors = existingProduct.colors.filter((c) => !submittedColorIds.has(c.id));
@@ -307,7 +337,7 @@ export async function updateProduct(
     ...existingProduct.images.filter((img) => !keptImages.has(img)),
     ...removedColors.flatMap((c) => c.images.filter((img) => !keptImages.has(img))),
   ];
-  await Promise.all(orphanedImages.map((url) => del(url).catch(() => {})));
+  await deleteUnreferencedImages(orphanedImages);
 
   revalidatePath("/admin/products");
   revalidateStorefront();
@@ -321,7 +351,7 @@ export async function deleteProduct(productId: string) {
   if (product) {
     await prisma.product.delete({ where: { id: productId } });
     const allImages = [...product.images, ...product.colors.flatMap((c) => c.images)];
-    await Promise.all(allImages.map((url) => del(url).catch(() => {})));
+    await deleteUnreferencedImages([...new Set(allImages)]);
   }
   revalidatePath("/admin/products");
   revalidateStorefront();

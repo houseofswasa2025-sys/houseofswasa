@@ -11,7 +11,7 @@ export default async function ContactPage() {
     <div className="mx-auto max-w-2xl px-4 pt-6 pb-12 sm:py-12">
       <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Contact Us</h1>
       <p className="mt-2 text-sm text-foreground/60">
-        We&apos;d love to hear from you — reach out anytime.
+        We&apos;d love to hear from you. Reach out anytime.
       </p>
 
       <div className="mt-5 space-y-4 sm:mt-8">

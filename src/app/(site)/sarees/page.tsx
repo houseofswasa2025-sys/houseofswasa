@@ -40,7 +40,7 @@ export default async function SareesPage({
       <div className="mb-4 sm:mb-6">
         <h1 className="font-serif text-2xl font-semibold text-maroon sm:text-3xl">Sarees</h1>
         <p className="mt-1 text-sm text-foreground/60">
-          Silk, Cotton, Banarasi, Kanjivaram, Organza & more — handpicked for every occasion.
+          Silk, Cotton, Banarasi, Kanjivaram, Organza & more, handpicked for every occasion.
         </p>
       </div>
 

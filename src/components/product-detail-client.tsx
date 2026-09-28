@@ -15,7 +15,7 @@ export function ProductDetailClient({ product }: { product: ProductWithColors })
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-10">
-      <ProductGallery key={active?.id ?? "default"} images={images} name={`${product.name} — ${active?.name ?? ""}`} />
+      <ProductGallery key={active?.id ?? "default"} images={images} name={`${product.name}${active ? `, ${active.name}` : ""}`} />
 
       <div>
         <p className="text-xs uppercase tracking-wide text-foreground/50">{product.fabric}</p>

@@ -14,18 +14,36 @@ const STATUS_STYLES: Record<string, string> = {
 
 const statuses: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
 
+const PAGE_SIZE = 50;
+
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, page: pageParam } = await searchParams;
   const validStatus = statuses.find((s) => s === status);
-  const orders = await prisma.order.findMany({
-    where: validStatus ? { status: validStatus } : undefined,
-    orderBy: { createdAt: "desc" },
-    include: { items: true },
-  });
+  const where = validStatus ? { status: validStatus } : undefined;
+  const page = Math.max(1, Math.floor(Number(pageParam)) || 1);
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { items: true },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.order.count({ where }),
+  ]);
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (validStatus) params.set("status", validStatus);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/admin/orders?${qs}` : "/admin/orders";
+  };
 
   return (
     <div>
@@ -159,6 +177,27 @@ export default async function AdminOrdersPage({
               </tbody>
             </table>
           </div>
+          {pageCount > 1 && (
+            <div className="mt-4 flex items-center justify-between text-sm">
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} className="rounded-full border border-gold-light bg-white px-4 py-1.5 font-medium text-maroon">
+                  Newer
+                </Link>
+              ) : (
+                <span />
+              )}
+              <span className="text-foreground/60">
+                Page {page} of {pageCount} ({total} orders)
+              </span>
+              {page < pageCount ? (
+                <Link href={pageHref(page + 1)} className="rounded-full border border-gold-light bg-white px-4 py-1.5 font-medium text-maroon">
+                  Older
+                </Link>
+              ) : (
+                <span />
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

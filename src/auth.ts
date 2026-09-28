@@ -2,6 +2,9 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+
+const ROLE_RECHECK_MS = 5 * 60 * 1000;
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -17,6 +20,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const identifier = credentials?.identifier as string | undefined;
         const password = credentials?.password as string | undefined;
         if (!identifier || !password) return null;
+        // Slow down password guessing against a single account.
+        if (!rateLimit(`login:${identifier.toLowerCase()}`, 10, 15 * 60 * 1000)) return null;
 
         const user = await prisma.user.findFirst({
           where: { OR: [{ phone: identifier }, { email: identifier }] },
@@ -42,6 +47,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.id = user.id;
         token.role = (user as { role: string }).role;
         token.phone = (user as { phone: string }).phone;
+        token.roleCheckedAt = Date.now();
+        return token;
+      }
+      // The role lives in a 30-day JWT. Re-read it every few minutes so a
+      // removed or demoted admin loses access promptly instead of at expiry.
+      const checkedAt = (token.roleCheckedAt as number | undefined) ?? 0;
+      if (token.id && Date.now() - checkedAt > ROLE_RECHECK_MS) {
+        const current = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true },
+        });
+        if (!current) return null;
+        token.role = current.role;
+        token.roleCheckedAt = Date.now();
       }
       return token;
     },
