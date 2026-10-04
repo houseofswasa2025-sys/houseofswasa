@@ -77,14 +77,14 @@ export function ProductCard({
       </Link>
 
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <p className="text-[11px] uppercase tracking-wide text-foreground/80">{fabric}</p>
+        <p className="text-[11px] uppercase tracking-wide text-black">{fabric}</p>
         <Link href={productUrl} className="line-clamp-2 text-sm font-medium text-foreground hover:text-maroon">
           {name}
         </Link>
         <div className="mt-1 flex items-center gap-2">
           <span className="text-sm font-semibold text-maroon">{formatPrice(displayPrice)}</span>
           {salePrice && (
-            <span className="text-xs text-foreground/75 line-through">{formatPrice(price)}</span>
+            <span className="text-xs text-black line-through">{formatPrice(price)}</span>
           )}
         </div>
 

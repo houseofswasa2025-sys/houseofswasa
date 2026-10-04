@@ -98,7 +98,7 @@ export function SiteHeader({ categories }: { categories: string[] }) {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -8, scale: 0.97 }}
                   transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute right-0 top-full mt-2 w-80 origin-top-right overflow-hidden rounded-xl border border-gold-light bg-white shadow-xl"
+                  className="absolute right-0 top-full mt-2 w-[30rem] origin-top-right overflow-hidden rounded-xl border border-gold-light bg-white shadow-xl"
                 >
                   <p className="border-b border-gold-light/60 bg-ivory px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-maroon">
                     Shop by Category
@@ -109,7 +109,7 @@ export function SiteHeader({ categories }: { categories: string[] }) {
                         key={cat}
                         href={`/categories/${toSlug(cat)}`}
                         onClick={() => setCategoriesOpen(false)}
-                        className="rounded-full px-3 py-1.5 text-center text-xs font-medium text-foreground/80 transition-colors hover:bg-maroon hover:text-white"
+                        className="whitespace-nowrap rounded-full px-3 py-1.5 text-center text-xs font-medium text-foreground/80 transition-colors hover:bg-maroon hover:text-white"
                       >
                         {cat}
                       </Link>
