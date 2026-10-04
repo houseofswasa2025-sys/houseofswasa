@@ -202,6 +202,7 @@ model SiteSettings {
   whatsappNumber String  @default("919652282268")
   contactEmail   String  @default("swathi.pisarla98@gmail.com")
   orderNotificationEmails String[] @default([])
+  hiddenCategories String[] @default([])
 }
 
 // Fixed-window counters for throttling (e.g. login attempts), shared across

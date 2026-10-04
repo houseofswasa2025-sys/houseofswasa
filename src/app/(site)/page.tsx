@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getProducts } from "@/lib/products";
-import { getSiteSettings } from "@/lib/site-settings";
+import { getSiteSettings, getVisibleCategories } from "@/lib/site-settings";
 import { prisma } from "@/lib/prisma";
-import { CATEGORIES, SITE_TAGLINE } from "@/lib/constants";
+import { SITE_TAGLINE } from "@/lib/constants";
 import { toSlug } from "@/lib/slug";
 import { Reveal, RevealGroup, RevealItem } from "@/components/reveal";
 import { HeroLogo, HeroStagger, HeroItem } from "@/components/hero-animate";
@@ -19,11 +19,12 @@ const WHY_CHOOSE_US = [
 ];
 
 export default async function HomePage() {
-  const [newArrivals, bestSellers, settings, reviews] = await Promise.all([
+  const [newArrivals, bestSellers, settings, reviews, categories] = await Promise.all([
     getProducts({ flag: "isNewArrival", sort: "newest" }),
     getProducts({ flag: "isBestSeller" }),
     getSiteSettings(),
     prisma.review.findMany({ where: { approved: true }, orderBy: { createdAt: "desc" }, take: 3 }),
+    getVisibleCategories(),
   ]);
 
   return (
@@ -77,7 +78,7 @@ export default async function HomePage() {
           </h2>
         </Reveal>
         <RevealGroup className="flex snap-x gap-3 overflow-x-auto pb-2" stagger={0.04}>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <RevealItem key={cat} className="shrink-0">
               <Link
                 href={`/categories/${toSlug(cat)}`}

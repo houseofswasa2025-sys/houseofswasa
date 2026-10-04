@@ -171,7 +171,7 @@ const products = [
     images: [img("chiffon-wine-1")],
     colors: ["Maroon", "Pink"],
     fabric: "Chiffon",
-    categories: ["Chiffon Sarees", "Party Wear"],
+    categories: ["Party Wear"],
     occasions: ["Party Wear"],
     stock: 11,
     isNewArrival: true,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { CATEGORIES } from "@/lib/constants";
 import type { SiteSettings } from "@/generated/prisma/client";
 
 // Mirrors the column defaults in schema.prisma, used until the admin first
@@ -13,6 +14,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   whatsappNumber: "919652282268",
   contactEmail: "swathi.pisarla98@gmail.com",
   orderNotificationEmails: [],
+  hiddenCategories: [],
 };
 
 // Read-only on purpose: this runs on every storefront render, and the old
@@ -34,4 +36,10 @@ export async function getOrderNotificationRecipients(): Promise<string[]> {
   ];
 
   return [...new Set(emails)];
+}
+
+// Categories the admin has not hidden; drives every storefront category list.
+export async function getVisibleCategories(): Promise<string[]> {
+  const { hiddenCategories } = await getSiteSettings();
+  return CATEGORIES.filter((c) => !hiddenCategories.includes(c));
 }

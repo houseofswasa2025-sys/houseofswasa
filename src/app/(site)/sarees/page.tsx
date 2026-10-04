@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getVisibleCategories } from "@/lib/site-settings";
 import { getProducts, type ProductFilters } from "@/lib/products";
 import { ProductFilters as FiltersUI } from "@/components/product-filters";
 import { ProductGrid } from "@/components/product-grid";
@@ -14,6 +15,7 @@ export default async function SareesPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
+  const categories = await getVisibleCategories();
 
   const minPrice = sp.minPrice ? Number(sp.minPrice) : undefined;
   const maxPrice = sp.maxPrice ? Number(sp.maxPrice) : undefined;
@@ -45,7 +47,7 @@ export default async function SareesPage({
       </div>
 
       <div className="flex flex-col gap-6 lg:flex-row">
-        <FiltersUI />
+        <FiltersUI categories={categories} />
         <div className="flex-1">
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-foreground/60">{products.length} sarees</p>

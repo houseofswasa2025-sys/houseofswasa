@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { CATEGORIES, FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
+import { FABRICS, OCCASIONS, COLORS } from "@/lib/constants";
 
 const PRICE_RANGES = [
   { label: "Under ₹1,500", min: 0, max: 1500 },
@@ -21,7 +21,7 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   );
 }
 
-export function ProductFilters() {
+export function ProductFilters({ categories }: { categories: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -89,7 +89,7 @@ export function ProductFilters() {
 
       <FilterSection title="Category">
         <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <button
               key={c}
               onClick={() => toggle("category", c)}

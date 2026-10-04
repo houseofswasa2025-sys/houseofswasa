@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { CATEGORIES } from "@/lib/constants";
 import { requireAdmin } from "@/lib/require-admin";
 
 export async function updateSiteSettings(
@@ -15,6 +16,9 @@ export async function updateSiteSettings(
     .map((e) => e.trim())
     .filter(Boolean);
 
+  const shown = formData.getAll("visibleCategories").map(String);
+  const hiddenCategories = CATEGORIES.filter((c) => !shown.includes(c));
+
   await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: {
@@ -26,6 +30,7 @@ export async function updateSiteSettings(
       whatsappNumber: String(formData.get("whatsappNumber") || "919652282268"),
       contactEmail: String(formData.get("contactEmail") || "swathi.pisarla98@gmail.com"),
       orderNotificationEmails,
+      hiddenCategories,
     },
     create: {
       id: 1,
@@ -35,6 +40,7 @@ export async function updateSiteSettings(
       youtubeUrl: String(formData.get("youtubeUrl") || "") || null,
       pinterestUrl: String(formData.get("pinterestUrl") || "") || null,
       orderNotificationEmails,
+      hiddenCategories,
     },
   });
 

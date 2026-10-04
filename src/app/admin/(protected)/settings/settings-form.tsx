@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { updateSiteSettings } from "./actions";
+import { CATEGORIES } from "@/lib/constants";
 import type { SiteSettings } from "@/generated/prisma/client";
 
 const FIELDS: { name: string; label: string; placeholder: string }[] = [
@@ -126,6 +127,27 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="border-t border-gold-light/60 pt-4">
+        <p className="mb-1 text-sm font-medium text-foreground/70">Categories shown on the storefront</p>
+        <p className="mb-3 text-xs text-foreground/50">
+          Untick a category to hide it from the menu, home page, filters and category pages.
+        </p>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {CATEGORIES.map((c) => (
+            <label key={c} className="flex items-center gap-2 text-sm text-foreground/80">
+              <input
+                type="checkbox"
+                name="visibleCategories"
+                value={c}
+                defaultChecked={!settings.hiddenCategories.includes(c)}
+                className="h-4 w-4 accent-maroon"
+              />
+              {c}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

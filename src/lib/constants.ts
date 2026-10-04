@@ -26,7 +26,6 @@ export const CATEGORIES = [
   "Banarasi Sarees",
   "Kanjivaram Sarees",
   "Organza Sarees",
-  "Chiffon Sarees",
   "Georgette Sarees",
   "Party Wear",
   "Wedding Collection",

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { useCartStore } from "@/lib/cart-store";
-import { CATEGORIES, SITE_NAME } from "@/lib/constants";
+import { SITE_NAME } from "@/lib/constants";
 import { toSlug } from "@/lib/slug";
 
 const NAV_LINKS = [
@@ -22,7 +22,7 @@ const NAV_LINKS = [
 
 const ABOUT_INDEX = NAV_LINKS.findIndex((l) => l.href === "/about");
 
-export function SiteHeader() {
+export function SiteHeader({ categories }: { categories: string[] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const collectionsRef = useRef<HTMLDivElement>(null);
@@ -104,7 +104,7 @@ export function SiteHeader() {
                     Shop by Category
                   </p>
                   <div className="grid grid-cols-2 gap-1.5 p-3">
-                    {CATEGORIES.map((cat) => (
+                    {categories.map((cat) => (
                       <Link
                         key={cat}
                         href={`/categories/${toSlug(cat)}`}
@@ -191,7 +191,7 @@ export function SiteHeader() {
               <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-foreground/50">
                 Collections
               </p>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <Link
                   key={cat}
                   href={`/categories/${toSlug(cat)}`}

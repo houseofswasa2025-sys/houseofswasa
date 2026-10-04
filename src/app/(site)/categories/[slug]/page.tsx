@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/products";
 import { ProductGrid } from "@/components/product-grid";
-import { CATEGORIES } from "@/lib/constants";
+import { getVisibleCategories } from "@/lib/site-settings";
 import { toSlug } from "@/lib/slug";
 
 // Empty list = nothing prebuilt at deploy, but each page is cached after its
@@ -12,13 +12,13 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const category = CATEGORIES.find((c) => toSlug(c) === slug);
+  const category = (await getVisibleCategories()).find((c) => toSlug(c) === slug);
   return { title: category ?? "Category" };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const category = CATEGORIES.find((c) => toSlug(c) === slug);
+  const category = (await getVisibleCategories()).find((c) => toSlug(c) === slug);
   if (!category) notFound();
 
   const products = await getProducts({ category });
