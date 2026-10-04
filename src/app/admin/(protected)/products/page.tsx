@@ -5,8 +5,24 @@ import { formatPrice } from "@/lib/constants";
 import { deleteProduct, toggleActive } from "./actions";
 import { AdminActionButton } from "@/components/admin/action-button";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const q = ((await searchParams).q ?? "").trim();
   const products = await prisma.product.findMany({
+    where: q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" } },
+            { fabric: { contains: q, mode: "insensitive" } },
+            { slug: { contains: q, mode: "insensitive" } },
+            { categories: { has: q } },
+            { colors: { some: { name: { contains: q, mode: "insensitive" } } } },
+          ],
+        }
+      : undefined,
     orderBy: { createdAt: "desc" },
     include: { colors: { orderBy: { sortOrder: "asc" } } },
   });
@@ -23,9 +39,33 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
+      <form action="/admin/products" className="mb-4 flex gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={q}
+          placeholder="Search by name, fabric, color or category"
+          className="w-full max-w-md rounded-lg border border-gold-light bg-white px-3 py-2 text-sm outline-none focus:border-maroon"
+        />
+        <button
+          type="submit"
+          className="rounded-full bg-maroon px-4 py-2 text-sm font-semibold text-white hover:bg-maroon-dark active:scale-95"
+        >
+          Search
+        </button>
+        {q && (
+          <Link
+            href="/admin/products"
+            className="flex items-center rounded-full border border-gold-light px-4 py-2 text-sm text-foreground/70 hover:border-maroon"
+          >
+            Clear
+          </Link>
+        )}
+      </form>
+
       {products.length === 0 ? (
         <div className="rounded-xl border border-gold-light/60 bg-white p-6 text-center text-foreground/50">
-          No products yet.
+          {q ? `No products match "${q}".` : "No products yet."}
         </div>
       ) : (
         <>
