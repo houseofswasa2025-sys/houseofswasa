@@ -3,14 +3,20 @@
 // request can hit Vercel's 4.5MB function body limit.
 
 import { upload } from "@vercel/blob/client";
-import { RAW_UPLOAD_PREFIX } from "@/lib/upload-limits";
+import { RAW_UPLOAD_PREFIX, READY_UPLOAD_PREFIX, MAX_READY_UPLOAD_BYTES } from "@/lib/upload-limits";
 import { isHeic } from "@/lib/client-image";
 
 const ATTEMPTS = 3;
 
+// A WebP the browser produced is already final-size, so it skips the server
+// conversion pass (which re-downloaded every photo from Blob).
+function isReadyWebp(file: File) {
+  return file.type === "image/webp" && file.size <= MAX_READY_UPLOAD_BYTES;
+}
+
 function uploadPathname(file: File) {
   const safe = file.name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(-80) || "photo.jpg";
-  return `${RAW_UPLOAD_PREFIX}${safe}`;
+  return `${isReadyWebp(file) ? READY_UPLOAD_PREFIX : RAW_UPLOAD_PREFIX}${safe}`;
 }
 
 export async function uploadProductImage(file: File): Promise<string> {

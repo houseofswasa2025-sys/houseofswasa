@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { auth } from "@/auth";
-import { RAW_UPLOAD_PREFIX, MAX_RAW_UPLOAD_BYTES } from "@/lib/upload-limits";
+import {
+  RAW_UPLOAD_PREFIX,
+  READY_UPLOAD_PREFIX,
+  MAX_RAW_UPLOAD_BYTES,
+  MAX_READY_UPLOAD_BYTES,
+} from "@/lib/upload-limits";
 
 // Issues short-lived tokens so the admin's browser can upload product photos
 // straight to Vercel Blob. Photos used to travel inside the product-save
@@ -17,13 +22,21 @@ export async function POST(request: Request) {
       onBeforeGenerateToken: async (pathname) => {
         const session = await auth();
         if (session?.user.role !== "ADMIN") throw new Error("Unauthorized");
-        if (!pathname.startsWith(RAW_UPLOAD_PREFIX)) throw new Error("Invalid upload path");
+        const ready = pathname.startsWith(READY_UPLOAD_PREFIX);
+        if (!ready && !pathname.startsWith(RAW_UPLOAD_PREFIX)) throw new Error("Invalid upload path");
 
-        return {
-          allowedContentTypes: ["image/*"],
-          maximumSizeInBytes: MAX_RAW_UPLOAD_BYTES,
-          addRandomSuffix: true,
-        };
+        return ready
+          ? {
+              allowedContentTypes: ["image/webp"],
+              maximumSizeInBytes: MAX_READY_UPLOAD_BYTES,
+              addRandomSuffix: true,
+              cacheControlMaxAge: 31536000,
+            }
+          : {
+              allowedContentTypes: ["image/*"],
+              maximumSizeInBytes: MAX_RAW_UPLOAD_BYTES,
+              addRandomSuffix: true,
+            };
       },
     });
     return NextResponse.json(result);

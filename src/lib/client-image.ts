@@ -13,6 +13,7 @@ export const PRODUCT_ASPECT = 3 / 4;
 
 const MAX_UPLOAD_WIDTH = 1600;
 const JPEG_QUALITY = 0.82;
+const WEBP_QUALITY = 0.8;
 
 export function isHeic(file: File) {
   return /^image\/hei[cf]/i.test(file.type) || HEIC_NAME_RE.test(file.name);
@@ -25,19 +26,28 @@ export function isCanvasEditable(file: File) {
   return !isHeic(file) && typeof document !== "undefined";
 }
 
-function canvasToJpegFile(canvas: HTMLCanvasElement, sourceName: string, fallback: File): Promise<File> {
+// Prefers WebP (what the storefront stores, so the server can skip
+// conversion). Browsers that can't encode WebP return PNG from toBlob, which
+// is then re-encoded as JPEG and converted server-side as before.
+function canvasToImageFile(canvas: HTMLCanvasElement, sourceName: string, fallback: File): Promise<File> {
   return new Promise((resolve) => {
+    const base = sourceName.replace(/\.[^.]+$/, "");
     canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          resolve(fallback);
+      (webp) => {
+        if (webp && webp.type === "image/webp") {
+          resolve(new File([webp], base + ".webp", { type: "image/webp" }));
           return;
         }
-        const name = sourceName.replace(/\.[^.]+$/, "") + ".jpg";
-        resolve(new File([blob], name, { type: "image/jpeg" }));
+        canvas.toBlob(
+          (blob) => {
+            resolve(blob ? new File([blob], base + ".jpg", { type: "image/jpeg" }) : fallback);
+          },
+          "image/jpeg",
+          JPEG_QUALITY
+        );
       },
-      "image/jpeg",
-      JPEG_QUALITY
+      "image/webp",
+      WEBP_QUALITY
     );
   });
 }
@@ -63,7 +73,7 @@ export async function compressForUpload(file: File): Promise<File> {
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
 
-    const out = await canvasToJpegFile(canvas, file.name, file);
+    const out = await canvasToImageFile(canvas, file.name, file);
     return out.size < file.size ? out : file;
   } catch {
     return file;
@@ -136,7 +146,7 @@ export async function cropAndCompress(
       outHeight
     );
 
-    return canvasToJpegFile(out, file.name, file);
+    return canvasToImageFile(out, file.name, file);
   } catch {
     return file;
   } finally {

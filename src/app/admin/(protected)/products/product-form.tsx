@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
 import { Combobox } from "@/components/combobox";
 import { ChipGroup } from "@/components/chip-group";
@@ -185,8 +186,7 @@ function ColorRowEditor({
           <div className="mb-3 flex flex-wrap gap-3">
             {row.existingImages.map((url) => (
               <div key={url} className="relative h-24 w-20 overflow-hidden rounded-lg border border-gold-light">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <Image src={url} alt="" fill sizes="80px" className="object-cover" />
                 <button
                   type="button"
                   onClick={() => onChange({ ...row, existingImages: row.existingImages.filter((i) => i !== url) })}

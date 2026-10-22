@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { toSlug } from "@/lib/slug";
 import { requireAdmin } from "@/lib/require-admin";
 import { registerPresets } from "@/lib/presets";
-import { RAW_UPLOAD_PREFIX } from "@/lib/upload-limits";
+import { RAW_UPLOAD_PREFIX, READY_UPLOAD_PREFIX } from "@/lib/upload-limits";
 
 export type ProductFormState = { error?: string } | undefined;
 
@@ -42,21 +42,29 @@ async function compressImage(buffer: Buffer, isHeic: boolean): Promise<Buffer> {
     .toBuffer();
 }
 
-// Only accept raw uploads the admin just made through /api/admin/upload.
-function isRawUploadUrl(value: string) {
+// Only accept uploads the admin just made through /api/admin/upload.
+function hasUploadPrefix(value: string, prefix: string) {
   try {
     const url = new URL(value);
     return (
       url.protocol === "https:" &&
       url.hostname.endsWith(BLOB_HOST_SUFFIX) &&
-      url.pathname.startsWith(`/${RAW_UPLOAD_PREFIX}`)
+      url.pathname.startsWith(`/${prefix}`)
     );
   } catch {
     return false;
   }
 }
 
+const isRawUploadUrl = (value: string) => hasUploadPrefix(value, RAW_UPLOAD_PREFIX);
+// Browser-compressed WebP already at its final size: used as-is, so the
+// server never downloads it again (that re-download was Blob egress).
+const isReadyUploadUrl = (value: string) => hasUploadPrefix(value, READY_UPLOAD_PREFIX);
+const needsCleanup = (urls: string[]) => urls.filter(isRawUploadUrl);
+const convertedOnly = (urls: string[]) => urls.filter((u) => !isReadyUploadUrl(u));
+
 async function processRawImage(rawUrl: string): Promise<string> {
+  if (isReadyUploadUrl(rawUrl)) return rawUrl;
   const res = await fetch(rawUrl, { cache: "no-store" });
   if (!res.ok) throw new Error(`fetch ${res.status}`);
   const buffer = Buffer.from(await res.arrayBuffer());
@@ -71,6 +79,7 @@ async function processRawImage(rawUrl: string): Promise<string> {
     access: "public",
     addRandomSuffix: true,
     contentType: "image/webp",
+    cacheControlMaxAge: 31536000,
   });
   return blob.url;
 }
@@ -79,7 +88,7 @@ async function processRawImage(rawUrl: string): Promise<string> {
 // are deleted by the caller only after the product save succeeds, so a failed
 // save can be retried without the admin re-uploading anything.
 async function processUploads(rawUrls: string[]): Promise<string[]> {
-  if (rawUrls.some((u) => !isRawUploadUrl(u))) {
+  if (rawUrls.some((u) => !isRawUploadUrl(u) && !isReadyUploadUrl(u))) {
     throw new ImageUploadError("One of the photos has an invalid upload link. Please remove it and add it again.");
   }
 
@@ -101,7 +110,7 @@ async function processUploads(rawUrls: string[]): Promise<string[]> {
   await Promise.all(Array.from({ length: Math.min(3, rawUrls.length) }, worker));
 
   if (failed) {
-    await Promise.all(results.filter(Boolean).map((url) => del(url).catch(() => {})));
+    await Promise.all(convertedOnly(results.filter(Boolean)).map((url) => del(url).catch(() => {})));
     throw new ImageUploadError(
       "Couldn't process one of the photos: it may be corrupted or in an unsupported format. Please try a JPEG, PNG, WebP, or HEIC photo."
     );
@@ -236,11 +245,11 @@ export async function createProduct(
       },
     });
   } catch (error) {
-    await Promise.all(allUploaded.map((url) => del(url).catch(() => {})));
+    await Promise.all(convertedOnly(allUploaded).map((url) => del(url).catch(() => {})));
     return { error: friendlySaveError(error) };
   }
 
-  await Promise.all(rawUploads.map((url) => del(url).catch(() => {})));
+  await Promise.all(needsCleanup(rawUploads).map((url) => del(url).catch(() => {})));
 
   await registerPresets({
     categories: data.categories,
@@ -318,11 +327,11 @@ export async function updateProduct(
       }
     });
   } catch (error) {
-    await Promise.all(allUploaded.map((url) => del(url).catch(() => {})));
+    await Promise.all(convertedOnly(allUploaded).map((url) => del(url).catch(() => {})));
     return { error: friendlySaveError(error) };
   }
 
-  await Promise.all(rawUploads.map((url) => del(url).catch(() => {})));
+  await Promise.all(needsCleanup(rawUploads).map((url) => del(url).catch(() => {})));
 
   await registerPresets({
     categories: data.categories,
